@@ -169,6 +169,7 @@ def verify_pdf(
     required_text=(),
     dump_text=None,
     ascii_dates=False,
+    max_pages=None,
 ):
     pdf_path = Path(pdf_path)
     if not pdf_path.is_file():
@@ -193,6 +194,11 @@ def verify_pdf(
     if expected_pages is not None and actual_pages != expected_pages:
         raise VerificationError(
             f"expected {expected_pages} page(s), found {actual_pages} (extractor: {extractor})"
+        )
+
+    if max_pages is not None and actual_pages > max_pages:
+        raise VerificationError(
+            f"expected at most {max_pages} page(s), found {actual_pages} (extractor: {extractor})"
         )
 
     normalized = normalize_text(extracted_text)
@@ -227,6 +233,7 @@ def build_parser():
     )
     parser.add_argument("pdf", type=Path, help="PDF file to verify")
     parser.add_argument("--pages", type=int, help="required exact page count")
+    parser.add_argument("--max-pages", type=int, help="upper bound on the page count")
     parser.add_argument(
         "--min-chars",
         type=int,
@@ -284,6 +291,7 @@ def main(argv=None):
             args.contains,
             dump_text=args.dump_text,
             ascii_dates=args.ascii_dates,
+            max_pages=args.max_pages,
         )
     except VerificationError as exc:
         print(f"Error: {args.pdf}: {exc}", file=sys.stderr)

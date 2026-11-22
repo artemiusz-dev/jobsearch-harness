@@ -176,10 +176,11 @@ def build_cv(prof, spec, out_dir, folder, force=False):
         pdf = to_pdf(out, out_dir)
         pages = pages_of(pdf)
         rc, lay = layout_check(pdf)
-        if pages <= max_pages and 'layout: clean' in lay:
+        # rc 2 = no text extractor (Poppler) installed: not a verdict, so judge by page count alone
+        good = pages <= max_pages and (rc == 2 or 'layout: clean' in lay)
+        if good:
             break
-    return dict(docx=out, pdf=pdf, pages=pages, dropped=dropped, layout=lay, layout_rc=rc,
-                ok=(pages <= max_pages and 'layout: clean' in lay))
+    return dict(docx=out, pdf=pdf, pages=pages, dropped=dropped, layout=lay, layout_rc=rc, ok=good)
 
 
 # ---------------------------------------------------------------- letter
@@ -248,8 +249,14 @@ def verify(prof, kind, res, spec):
     """Run the mechanical PDF checks. Returns (ok, report)."""
     pdf = res['pdf']
     contains = [prof['identity']['email']] + list(spec.get(kind, {}).get('must_contain', []))
-    cmd = [sys.executable, os.path.join(SCRIPTS, 'verify_pdf.py'), pdf,
-           '--pages', str(spec.get(kind, {}).get('verify_pages', 2 if kind == 'cv' else 1))]
+    sec = spec.get(kind, {})
+    cmd = [sys.executable, os.path.join(SCRIPTS, 'verify_pdf.py'), pdf]
+    if 'verify_pages' in sec:                       # explicit exact page count
+        cmd += ['--pages', str(sec['verify_pages'])]
+    elif kind == 'cv':                              # a CV may be shorter than its limit
+        cmd += ['--max-pages', str(sec.get('max_pages', 2))]
+    else:                                           # a letter is exactly one page
+        cmd += ['--pages', '1']
     if kind == 'cv':
         cmd.append('--ascii-dates')
     for x in contains:
