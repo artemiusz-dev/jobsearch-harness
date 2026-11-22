@@ -40,8 +40,6 @@ BASE_SUFFIXES = {
     "group", "inc", "inc.", "ltd", "llc", "gmbh", "ag", "sa", "s.a.", "corp", "corporation", "co", "limited",
     "technologies", "technology", "software", "solutions", "systems", "holding", "plc", "bv", "srl", "oy", "ab",
 }
-OPEN_FOR_FOLLOWUP = {"APPLIED", "CV SENT"}
-REPLIED = {"SCREENING", "INTERVIEW", "OFFER"}
 
 
 def norm_company(name: str, suffixes: set[str]) -> str:
@@ -54,8 +52,15 @@ def norm_company(name: str, suffixes: set[str]) -> str:
 
 def load(path: Path, sheet: str):
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    ws = wb[sheet]
-    rows = list(ws.iter_rows(values_only=True))
+    try:
+        if sheet not in wb.sheetnames:
+            print(f"! {path.name}: no sheet named '{sheet}' (found: {', '.join(wb.sheetnames)}); skipped", file=sys.stderr)
+            return []
+        rows = list(wb[sheet].iter_rows(values_only=True))
+    finally:
+        wb.close()
+    if not rows:
+        return []
     head = [str(h) for h in rows[0]]
     out = []
     for r in rows[1:]:
@@ -108,7 +113,8 @@ def cmd_match(prof, a):
             if not c:
                 continue
             ratio = difflib.SequenceMatcher(None, target, c).ratio()
-            contained = target in c or c in target
+            tt, ct = set(target.split()), set(c.split())
+            contained = tt <= ct or ct <= tt          # whole-word containment: "go" must not match "google"
             if ratio >= 0.85 or contained:
                 if a.role and a.role.lower() not in str(r.get("Role", "")).lower():
                     tag = "same company, other role"
@@ -119,7 +125,7 @@ def cmd_match(prof, a):
         print(f"No match for '{a.company}' (normalised: '{target}') in live or archive.")
         return 0
     print(f"{len(hits)} match(es) for '{a.company}' (normalised: '{target}'):")
-    for label, r, tag, ratio in hits:
+    for label, r, tag, _ratio in hits:
         print(
             f"- [{label}] {r['Company']} | {r.get('Role')} | {r.get('Status')} | "
             f"match {r.get('Match %')} | applied {r.get('Applied')} | "
@@ -133,10 +139,14 @@ def cmd_quiet(prof, a):
     days_min = a.days if a.days is not None else fu_cfg["first_after_days"]
     max_fu, stale_days = fu_cfg["max_followups"], fu_cfg["stale_after_days"]
     today = dt.date.today()
+    if not prof.path("tracker").exists():
+        print(f"No tracker at {prof.path('tracker')}")
+        return 1
+    roles = prof["tracker"]["status_roles"]
     rows = load(prof.path("tracker"), prof["tracker"]["sheet"])
     cand, stale = [], []
     for r in rows:
-        if r.get("Status") not in OPEN_FOR_FOLLOWUP:
+        if r.get("Status") not in roles["open_for_followup"]:
             continue
         na = str(r.get("Next Action") or "")
         fu = re.findall(r"followed up (\d{4}-\d{2}-\d{2})", na)
@@ -158,7 +168,7 @@ def cmd_quiet(prof, a):
         print(f"- {d:>3}d | {c} | {role} | {st} | follow-ups {n} | applied {ap}")
     stale.sort(reverse=True)
     print(f"\nStale-sweep candidates (>= {stale_days}d quiet; propose only, user confirms): {len(stale)}")
-    for d, c, role, st, n, ap in stale:
+    for d, c, role, st, n, _ap in stale:
         print(f"- {d:>3}d | {c} | {role} | {st} | follow-ups {n}")
     return 0
 
@@ -174,6 +184,7 @@ def make_band(edges):
 
 def cmd_bands(prof, a):
     band, labels = make_band(prof.band_edges)
+    roles = prof["tracker"]["status_roles"]
     for label, rows in all_sources(prof):
         stats: dict[str, dict[str, int]] = {}
         for r in rows:
@@ -183,11 +194,11 @@ def cmd_bands(prof, a):
                 continue
             b = stats.setdefault(band(s), dict(n=0, replied=0, interview=0, offer=0))
             b["n"] += 1
-            if r.get("Intro Call") or r.get("Status") in REPLIED:
+            if r.get("Intro Call") or r.get("Status") in roles["replied"]:
                 b["replied"] += 1
-            if r.get("Tech Interview") or r.get("Final Interview") or r.get("Status") in {"INTERVIEW", "OFFER"}:
+            if r.get("Tech Interview") or r.get("Final Interview") or r.get("Status") in roles["interview"]:
                 b["interview"] += 1
-            if r.get("Status") == "OFFER":
+            if r.get("Status") in roles["offer"]:
                 b["offer"] += 1
         tag = f"rubric {prof['scoring']['rubric_version']}" if label == "live" else "archive: rubric may differ"
         print(f"\n{label} ({tag}) - applications with a Match % and an Applied date")

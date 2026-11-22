@@ -11,6 +11,12 @@ Thanks for helping. This project has one hard rule: **no personal data in this r
 
 ## Setup
 
+Enable the privacy hook once per clone (it runs `scripts/privacy_audit.py` on what you stage, plus your private denylist if you keep one at `~/.config/jobsearch-private/denylist.txt` or `$JOBSEARCH_DENYLIST`; the denylist is optional):
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest
@@ -22,7 +28,7 @@ LibreOffice is optional; PDF-building tests are skipped without it.
 
 1. Tests pass: `.venv/bin/python -m pytest`.
 2. Privacy audit passes: `.venv/bin/python scripts/privacy_audit.py`. If you keep a personal denylist, run it with `--denylist <file outside the repo>`; never add that file here.
-3. New behavior has a test; new profile fields are in `config/profile.schema.json` with a default and described in the README or the relevant doc.
+3. New behavior has a test; new profile fields are in `config/profile.schema.json` with a default where one makes sense, and described in the README or the relevant doc.
 4. Use a short dash `-` in generated-text rules and docs, not an em dash.
 5. Commits use a noreply email. Check with `git log --format='%an <%ae>'`.
 

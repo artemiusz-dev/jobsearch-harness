@@ -2,59 +2,39 @@
 # Adapted from MadsLorentzen/ai-job-search (MIT License, see THIRD_PARTY_LICENSES.md).
 """Measure a compiled CV or cover letter's page layout, instead of eyeballing it.
 
-The compile-and-inspect loop in `05-cv-templates.md` and the verification checklist in
-CLAUDE.md already require the layout properties below. Nothing executes them: they are
-checked by looking at the rendered page, which is exactly how they get missed. Each
-failure below produces a clean compile, a correct page count, and a PDF that passes
-`tools/verify_pdf.py`:
+Each failure below produces a clean compile and a correct page count, and passes
+`verify_pdf.py`; they are only visible by measuring the rendered page:
 
-  orphaned entry      A moderncv \\cventry renders as a tabular, so a job entry is one
-                      unbreakable block. When it does not fit, the whole entry moves to
-                      the next page - or its header lands at the bottom of one page with
-                      the bullets resuming on the next. CLAUDE.md calls this "the most
-                      common failure".
-  internal hole       The space an ejected entry leaves behind. Observed in the wild at
-                      273pt, roughly 19 blank lines, mid-page, on a document whose page
-                      count was correct and whose visual read looked fine.
+  orphaned entry      A job entry that renders as one unbreakable block moves whole to the
+                      next page, or its header lands at the bottom of one page with the
+                      bullets resuming on the next.
+  internal hole       The space an ejected entry leaves behind, mid-page.
   page ends early     A non-final page that stops well short of the bottom.
   final page thin     A last page mostly empty, which reads as an unfinished document.
-  footer collision    Body text pushed into the page-number band, the usual result of
-                      rescuing a page with \\enlargethispage or a negative \\vspace.
+  footer collision    Body text pushed into the page-number band.
 
-Page count is deliberately NOT checked here: `tools/verify_pdf.py --pages` already does
-that, and CI runs it. Two implementations of one rule drift.
+Page count is deliberately NOT checked here: `verify_pdf.py --pages/--max-pages` does that.
+Two implementations of one rule drift.
 
 Geometry comes from Poppler word bounding boxes (`pdftotext -bbox`). Poppler is optional
-repo-wide - since #369 `verify_pdf.py` prefers pypdf and falls back to Poppler - but word
-bounding boxes have no pypdf equivalent, so this is the one step that still wants it.
-Without it, or with a broken extractor, the check reports `skipped:` and exits 2 rather
-than inventing a layout failure. A broken extractor has two distinct causes: an xpdf-based
-`pdftotext` (Git for Windows ships one ahead of Poppler in PATH) has no `-bbox` flag at
-all, and Poppler 26.0x before 26.05 aborts `-bbox`/`-bbox-layout`/`-htmlmeta` on a PDF
-whose Info dictionary carries an empty string in any field - which `hyperref` writes for
-every field it does not set, so any `lualatex`/`pdflatex` document built with `hyperref`
-and no `\\hypersetup{pdftitle=...}` triggers a real Poppler crashing on a legal PDF (#451).
-Line height serves
-as a font-size proxy to spot section headings. An orphaned entry header is found by where
-each line's TEXT starts, after any list marker merged into it, not by its left edge (see
-`find_orphans`).
+for the rest of the toolchain (verify_pdf.py prefers pypdf), but bounding boxes have no pypdf
+equivalent, so this is the one step that still wants it. Without Poppler, or with a broken
+extractor (an xpdf-based `pdftotext` has no `-bbox`; some Poppler 26.0x releases abort on a
+PDF whose Info dictionary holds an empty string), the check reports `skipped:` and exits 3
+rather than inventing a layout failure. Line height serves as a font-size proxy to spot
+section headings. An orphaned entry header is found by where each line's TEXT starts, after
+any list marker merged into it, not by its left edge (see `find_orphans`).
 
-The thresholds below are calibrated for the stock moderncv (`cv/`) and cover.cls
-(`cover_letters/`) geometry. A template registered via `/add-template` may need them
-retuned - an article-class page number sitting outside the 90pt footer band, for
-instance, is read as body text and turns the space above it into a phantom hole.
+The thresholds are tuned for a single-column CV or letter on A4 produced from a Word
+document (the builder's output). A different template may need them retuned: for example a
+page number outside the 90pt footer band is read as body text and turns the space above it
+into a phantom hole.
 
 Usage:
-    python tools/verify_layout.py cv/main_acme_ml_engineer.pdf
-    python tools/verify_layout.py cover_letters/cover_acme_ml_engineer.pdf
+    python scripts/verify_layout.py path/to/cv.pdf
 
-Exit codes: 0 clean, 1 layout problem, 2 bad invocation or no usable extractor.
-
-The shipped `cv/main_example.pdf` exits 1 by design: its placeholder page 2 is mostly
-empty, which is the thin-final-page failure the checklist asks you to fix before sending.
-
-Tests live in tests/test_verify_layout.py and run against synthetic pages, so the
-suite needs neither Poppler nor a compiled PDF.
+Exit codes: 0 clean, 1 layout problem, 2 bad invocation (missing file or argument),
+3 no usable extractor (skipped, not a verdict).
 """
 
 from __future__ import annotations
@@ -204,7 +184,7 @@ def parse_pdf(path: Path) -> list[Page]:
         # in PATH); a real Poppler before 26.05 aborts -bbox on a PDF whose Info dict
         # has an empty string in any field - which hyperref writes for every field it
         # does not set, so a lualatex/pdflatex document with hyperref and no pdftitle
-        # triggers this even with a working Poppler (#451). Either way this is a
+        # triggers this even with a working Poppler. Either way this is a
         # broken extractor, not a broken document, so it degrades to the skip path
         # instead of exit 1.
         stderr_lines = (exc.stderr or "").strip().splitlines()
@@ -305,7 +285,7 @@ def find_orphans(pages: list[Page]) -> list[str]:
         tail = [l for l in here.body if l.top >= last.top - SAME_PRINTED_LINE_PT]
         last_x = printed_text_x(tail)
         if last_x is None:
-            # moderncv puts an itemize marker in its own bbox line at the list's left
+            # some producers put a list marker in its own bbox line at the list's left
             # edge, so a list item split across the break looks like an un-indented
             # header followed by indented text. Different defect, different fix.
             if not indented(last) and indented(first):
@@ -334,8 +314,8 @@ def find_orphans(pages: list[Page]) -> list[str]:
             problems.append(
                 f"p{i + 1} ends on {shown.text.strip()[:60]!r} while the text on p{i + 2} "
                 f"starts further in ({opener.text.strip()[:60]!r}): an entry header is "
-                "orphaned from its bullets. Add \\needspace before that \\cventry, "
-                "or shorten it"
+                "orphaned from its bullets. Keep the header with its first bullet "
+                "(keep-with-next) or shorten the entry"
             )
     return problems
 
@@ -361,7 +341,7 @@ def report(path: Path, pages: list[Page]) -> list[str]:
         if gap > GAP_LIMIT_PT:
             problems.append(
                 f"p{i} has a {gap:.0f}pt hole at y{gap_y:.0f} (~{gap / 14:.0f} blank lines). "
-                "A moderncv \\cventry is an unbreakable tabular: shorten the entry that "
+                "A job entry that renders as one unbreakable block moved to the next page: shorten the entry that "
                 "follows the hole so it fits, or move a shorter section above it"
             )
         if i < len(pages) and share > BOTTOM_LIMIT_FRACTION:
@@ -404,7 +384,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if not args.pdf:
-        ap.error("pdf is required")
+        ap.error("pdf is required")           # argparse exits with status 2
     if not args.pdf.exists():
         print(f"error: {args.pdf} not found", file=sys.stderr)
         return 2
@@ -413,7 +393,7 @@ def main() -> int:
         pages = parse_pdf(args.pdf)
     except RuntimeError as exc:
         print(f"skipped: {exc}", file=sys.stderr)
-        return 2
+        return 3
 
     problems = report(args.pdf, pages)
     if problems:

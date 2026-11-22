@@ -27,6 +27,18 @@ File: `paths.tracker` (default `applications-tracker.xlsx`), sheet `tracker.shee
 | `REJECTED` | Rejected at any stage | red (dimmed) |
 | `WITHDRAWN` | Withdrew or role filled | grey (dimmed) |
 
+## Status roles
+Scripts need to know which of your statuses mean "submitted, waiting", "got a reply", "reached interviews" and "offer". The defaults match the table above. If you rename statuses, map them in `profile.yaml`:
+
+```yaml
+tracker:
+  status_roles:
+    open_for_followup: [Submitted]
+    replied: [Screening, Interviewing, Offer]
+    interview: [Interviewing, Offer]
+    offer: [Offer]
+```
+
 ## Row sort order
 
 Rows are sorted by `restyle_tracker.py` on every run.
@@ -49,4 +61,4 @@ The `#` column is renumbered after sorting.
 `#`=4 | Company=24 | Role=36 | Source=22 | Status=14 | Match%=10 | Salary=34 | stage columns=12-16 | Next Action=44 | Folder=28 | Updated=12
 
 ## Creating the file
-`init-workspace` creates an empty tracker with these columns and styling. To rebuild from scratch, regenerate with openpyxl from the existing rows (never lose entries) and run `restyle_tracker.py`.
+`init-workspace` creates a tracker with the header row only (column names from `tracker.columns` or the defaults above); the first `restyle_tracker.py` run applies sorting, colors and widths. To rebuild from scratch, regenerate with openpyxl from the existing rows (never lose entries) and run `restyle_tracker.py`.

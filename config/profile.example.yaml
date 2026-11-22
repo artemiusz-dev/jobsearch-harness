@@ -19,7 +19,7 @@ identity:
   email: alex@example.com
   links:
     linkedin: https://www.linkedin.com/in/alex-example
-  output_name_pattern: "{first}-{last}-{company_slug}-CV"
+  output_name_pattern: "{first}-{last}-{company_slug}-{kind}"
 
 targets:
   roles: [Senior Backend Engineer, Staff Backend Engineer]
@@ -80,4 +80,6 @@ tracker:
   sheet: Pipeline
 
 cv_map:
-  mode: headings
+  summary_heading: PROFESSIONAL SUMMARY
+  skills_heading: SKILLS
+  experience_heading: PROFESSIONAL EXPERIENCE

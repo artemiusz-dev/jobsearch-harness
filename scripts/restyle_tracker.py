@@ -16,6 +16,7 @@ Actions:
 """
 
 import argparse
+import copy
 import datetime
 import os
 import shutil
@@ -28,6 +29,8 @@ from openpyxl.utils import get_column_letter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jobprofile import ProfileError, add_workspace_arg, load_profile  # noqa: E402
 
+REQUIRED_COLUMNS = ["#", "Company", "Role", "Status", "Match %", "Applied", "Intro Call",
+                    "Tech Interview", "Final Interview", "Offer / Rejected", "Next Action", "Updated"]
 BASE_WIDTHS = {
     "#": 4, "Company": 24, "Role": 36, "Source": 22, "Status": 14, "Match %": 10,
     "Applied": 12, "Intro Call": 12, "Assignment": 12, "Tech Interview": 14, "Final Interview": 14,
@@ -50,8 +53,8 @@ def parse_date(val):
     if isinstance(val, (datetime.datetime, datetime.date)):
         return val if isinstance(val, datetime.date) and not isinstance(val, datetime.datetime) else val.date()
     try:
-        return datetime.datetime.strptime(str(val).strip(), "%Y-%m-%d").date()
-    except Exception:
+        return datetime.datetime.strptime(str(val).strip()[:10], "%Y-%m-%d").date()   # tolerates "2026-11-20 00:00:00"
+    except ValueError:
         return datetime.date.min
 
 
@@ -78,39 +81,61 @@ def main():
         print(f"ERROR: tracker not found at {tracker}", file=sys.stderr)
         sys.exit(1)
 
+    wb = openpyxl.load_workbook(tracker)
+    if sheet not in wb.sheetnames:
+        print(f"ERROR: sheet '{sheet}' not found (found: {', '.join(wb.sheetnames)}).", file=sys.stderr)
+        sys.exit(1)
+    ws = wb[sheet]
+    headers = [cell.value for cell in ws[1]]
+    missing = [c for c in REQUIRED_COLUMNS if c not in headers]
+    if missing:
+        print(f"ERROR: tracker is missing required column(s) {missing}; scripts depend on them "
+              f"(see docs/tracker-schema.md). Nothing was changed.", file=sys.stderr)
+        sys.exit(1)
+
     os.makedirs(backup_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(tracker))[0]
     dest = os.path.join(backup_dir, f"{stem}_{datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')}.xlsx")
     shutil.copy2(tracker, dest)
     print(f"Backup saved: {dest}")
 
-    wb = openpyxl.load_workbook(tracker)
-    if sheet not in wb.sheetnames:
-        print(f"ERROR: sheet '{sheet}' not found.", file=sys.stderr)
-        sys.exit(1)
-    ws = wb[sheet]
-
-    headers = [cell.value for cell in ws[1]]
-
     def col(name):
         return headers.index(name) + 1  # 1-based
 
     num_col, status_col, updated_col = col("#"), col("Status"), col("Updated")
+    width = len(headers)
 
     def status_rank(v):
         val = str(v).strip() if v else ""
         return order.index(val) if val in order else len(order)
 
-    data_rows = [list(row) for row in ws.iter_rows(min_row=2, values_only=True) if any(v is not None for v in row)]
-    data_rows.sort(key=lambda r: (status_rank(r[status_col - 1]), -parse_date(r[updated_col - 1]).toordinal()))
+    # Read each data row as cells so formats, hyperlinks and comments travel with their values.
+    rows = []
+    for row in ws.iter_rows(min_row=2, max_col=width):
+        if any(c.value is not None for c in row):
+            rows.append([(c.value, c.number_format, copy.copy(c.hyperlink) if c.hyperlink else None,
+                          c.comment) for c in row])
+    rows.sort(key=lambda r: (status_rank(r[status_col - 1][0]), -parse_date(r[updated_col - 1][0]).toordinal()))
 
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=width):
         for cell in row:
             cell.value = None
-    for i, row_data in enumerate(data_rows, start=1):
-        row_data[num_col - 1] = i
-        for j, val in enumerate(row_data, start=1):
-            ws.cell(row=i + 1, column=j).value = val
+            cell.hyperlink = None
+            cell.comment = None
+    expected = []
+    for i, row_data in enumerate(rows, start=1):
+        values = []
+        for j, (val, fmt, link, comment) in enumerate(row_data, start=1):
+            cell = ws.cell(row=i + 1, column=j)
+            cell.value = i if j == num_col else val
+            cell.number_format = fmt
+            if link is not None:
+                cell.hyperlink = link
+            if comment is not None:
+                cell.comment = comment
+            values.append(cell.value)
+        expected.append(values)
+    data_rows = rows
 
     header_fill = PatternFill("solid", fgColor="1F4E79")
     header_font = Font(name="Calibri", bold=True, size=10, color="FFFFFF")
@@ -137,18 +162,23 @@ def main():
             else:
                 cell.font = body_dimmed if status_val in dimmed else body_default
 
-    for header_name, width in widths.items():
+    for header_name, col_width in widths.items():
         if header_name in headers:
-            ws.column_dimensions[get_column_letter(headers.index(header_name) + 1)].width = width
+            ws.column_dimensions[get_column_letter(headers.index(header_name) + 1)].width = col_width
 
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
     wb.save(tracker)
 
     ws2 = openpyxl.load_workbook(tracker)[sheet]
-    row_count = sum(1 for row in ws2.iter_rows(min_row=2, values_only=True) if any(v is not None for v in row))
-    if row_count != len(data_rows):
-        print(f"ERROR: row count changed ({len(data_rows)} -> {row_count})", file=sys.stderr)
+    def norm(rows):          # an empty string is stored as an empty cell, so the two compare equal
+        return [[None if v == "" else v for v in r] for r in rows]
+
+    after = [list(r)[:width] for r in ws2.iter_rows(min_row=2, max_col=width, values_only=True) if any(v is not None for v in r)]
+    row_count = len(after)
+    if norm(after) != norm(expected):
+        print(f"ERROR: content changed during restyle (rows {len(expected)} -> {row_count}); "
+              f"restore the backup {dest}", file=sys.stderr)
         sys.exit(1)
     print(f"Restyled: {tracker} ({row_count} rows)")
     print("Verification passed.")

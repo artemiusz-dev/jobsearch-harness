@@ -17,7 +17,7 @@ All company folders follow `paths.output_dir_pattern` from `profile.yaml` (defau
 - `.DS_Store` (macOS metadata)
 - `.~lock.*` (LibreOffice stale lock files)
 - `*.tmp`
-- `unpacked/` directories (temp docx/xlsx unpack artifacts)
+- `unpacked/` directories that contain `[Content_Types].xml` (the signature of an unpacked Office document). Any other directory with that name is left alone, and symlinks are never followed or deleted.
 
 It never deletes files by extension-less name or by guesswork. To remove anything else, do it yourself on purpose.
 

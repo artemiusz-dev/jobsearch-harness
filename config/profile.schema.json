@@ -66,7 +66,7 @@
         "output_name_pattern": {
           "type": "string",
           "default": "{first}-{last}-{company_slug}-{kind}",
-          "description": "File name stem for generated files. Placeholders: first, last, company_slug, kind (CV or Cover-Letter)."
+          "description": "File name stem for generated files. Placeholders: first, last, company_slug, kind (CV or Cover-Letter). '-{kind}' is appended if the pattern lacks it, so a CV and a letter never collide."
         }
       }
     },
@@ -186,7 +186,7 @@
             "career": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.25 },
             "compensation": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.15 }
           },
-          "description": "Must sum to 1.0 (checked by profile.py, JSON Schema cannot express it)."
+          "description": "Must sum to 1.0 (checked by jobprofile.py, JSON Schema cannot express it)."
         },
         "thresholds": {
           "type": "object",
@@ -199,7 +199,7 @@
             "weak": { "type": "integer", "default": 30 },
             "apply_this_week_from": { "type": "integer", "default": 68 }
           },
-          "description": "Must be strictly descending (checked by profile.py)."
+          "description": "Must be strictly descending (checked by jobprofile.py)."
         },
         "technical_floor": { "type": "integer", "default": 45, "description": "Technical score below this caps the verdict at Moderate." },
         "gates": {
@@ -255,6 +255,17 @@
         "sheet": { "type": "string", "default": "Pipeline" },
         "salary_column": { "type": "string", "description": "Defaults to 'Salary (<currency> gross)'." },
         "columns": { "type": "array", "items": { "type": "string" }, "description": "Override column order." },
+        "status_roles": {
+          "type": "object",
+          "description": "Which of your status names play which role in the scripts (rename statuses freely, then map them here).",
+          "additionalProperties": false,
+          "properties": {
+            "open_for_followup": { "type": "array", "items": { "type": "string" }, "default": ["APPLIED", "CV SENT"] },
+            "replied": { "type": "array", "items": { "type": "string" }, "default": ["SCREENING", "INTERVIEW", "OFFER"] },
+            "interview": { "type": "array", "items": { "type": "string" }, "default": ["INTERVIEW", "OFFER"] },
+            "offer": { "type": "array", "items": { "type": "string" }, "default": ["OFFER"] }
+          }
+        },
         "archives": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Workspace-relative paths of older tracker snapshots, read-only, used by tracker_query. Do not point at a folder of timestamped backups." },
         "company_suffixes": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Extra legal-form words ignored when matching company names (added to a built-in generic list)." },
         "statuses": {
@@ -279,7 +290,6 @@
       "description": "How the base CV is structured. Prefer heading detection; use explicit indices only as an escape hatch.",
       "additionalProperties": false,
       "properties": {
-        "mode": { "enum": ["headings", "indices"], "default": "headings" },
         "summary_heading": { "type": "string", "default": "PROFESSIONAL SUMMARY" },
         "skills_heading": { "type": "string", "default": "SKILLS" },
         "experience_heading": { "type": "string", "default": "PROFESSIONAL EXPERIENCE" },

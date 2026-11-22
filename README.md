@@ -47,7 +47,7 @@ Then, in a new empty folder outside this repository, ask Claude to run the **ini
 python3 scripts/jobprofile.py --workspace /path/to/workspace
 ```
 
-PDF builds need LibreOffice (`soffice`). Everything else is pure Python.
+Requires Python 3.9+. PDF builds need LibreOffice (`soffice`); the layout check also uses Poppler (`pdftotext`) when installed and is skipped without it. Everything else is pure Python.
 
 ## Customize
 

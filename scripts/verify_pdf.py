@@ -2,19 +2,18 @@
 # Adapted from MadsLorentzen/ai-job-search (MIT License, see THIRD_PARTY_LICENSES.md).
 """Verify that a generated PDF has the expected pages and extractable text.
 
-Text-layer extraction tries pypdf (BSD, optional `pip install pypdf`) first,
-then Poppler `pdftotext` if pypdf is missing, raises, or returns zero
-extractable characters. Poppler remains the fallback.
+Text-layer extraction tries pypdf first, then Poppler `pdftotext` if pypdf is missing,
+raises, or returns zero extractable characters.
 
-`--contains` compares after `normalize_text()` has folded both sides: whitespace,
-Unicode normalization form (NFC), and the typographic substitutions LaTeX makes to
-the source text. The fold is comparison-time only - the `--dump-text` output stays
-the raw text layer an ATS parser actually sees.
+`--pages N` requires exactly N pages; `--max-pages N` requires at most N (a shorter CV is
+fine). `--contains` compares after `normalize_text()` has folded both sides: whitespace,
+Unicode normalization form (NFC), and typographic substitutions (curly quotes, en/em
+dashes, no-break spaces). The fold is comparison-time only: `--dump-text` stays the raw
+text layer an ATS parser actually sees.
 
-`--ascii-dates` is the one check that deliberately does NOT fold: it scans the raw
-layer for a year joined to a Unicode dash - the en-dash LaTeX makes from `--`, which
-a Workday import dropped along with the date (`05-cv-templates.md`, "Date fields
-must be ASCII ranges") - and fails naming each hit with its code point.
+`--ascii-dates` is the one check that deliberately does NOT fold: it scans the raw layer for
+a year joined to a Unicode dash (an en dash, for instance), which some ATS date parsers drop
+along with the date, and fails naming each hit with its code point.
 """
 
 import argparse
@@ -59,10 +58,10 @@ def parse_page_count(pdfinfo_output):
     return int(match.group(1))
 
 
-# Typographic substitutions the moderncv/cover.cls templates produce from plain
+# Typographic substitutions some PDF producers (LaTeX templates, for instance) make from plain
 # source text, mapped back to what a user types into --contains. LaTeX ligatures
 # ' into U+2019 and -- into U+2013, so "Master's degree" and "2016-2024" are
-# absent from the text layer of a CV that plainly contains them (#385). Applied
+# absent from the text layer of a CV that plainly contains them. Applied
 # to both sides of the comparison; the extracted dump is never rewritten.
 TYPOGRAPHIC_FOLDS = str.maketrans(
     {
@@ -70,7 +69,7 @@ TYPOGRAPHIC_FOLDS = str.maketrans(
         "\u2019": "'",  # ' -> quoteright (the possessive apostrophe)
         "\u201c": '"',  # `` -> quotedblleft
         "\u201d": '"',  # '' -> quotedblright
-        "\u2013": "-",  # -- -> endash (the \cventry date-range case)
+        "\u2013": "-",  # en dash
         "\u2014": "-",  # --- -> emdash
         "\u00a0": " ",  # ~ -> no-break space
     }
@@ -82,9 +81,9 @@ def normalize_text(text):
 
     NFC covers the pdflatex text layer, which without T1 font encoding stores
     accented letters decomposed (`e` + U+0300) while a user types them
-    precomposed (U+00E8); both forms fold to the same string (#384). The fold
-    applies to what is compared, never to what is dumped: the date-range rule in
-    `05-cv-templates.md` still needs the raw en-dash visible in `--dump-text`.
+    precomposed (U+00E8); both forms fold to the same string. The fold
+    applies to what is compared, never to what is dumped: the ASCII date-range rule
+    still needs the raw dash visible in `--dump-text`.
     """
     text = unicodedata.normalize("NFC", text).translate(TYPOGRAPHIC_FOLDS)
     return " ".join(text.split())
@@ -221,7 +220,7 @@ def verify_pdf(
             raise VerificationError(
                 f"{len(hits)} date range(s) joined by a non-ASCII dash - an ATS that splits "
                 f"ranges on U+002D drops the date; write the date argument with a single "
-                f"ASCII hyphen (05-cv-templates.md, 'Date fields must be ASCII ranges'): "
+                f"ASCII hyphen "
                 f"{listed} (extractor: {extractor})"
             )
     return extractor, extracted_text, actual_pages

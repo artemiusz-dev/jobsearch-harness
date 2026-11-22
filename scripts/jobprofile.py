@@ -13,10 +13,12 @@ import copy
 import json
 import os
 import re
+import string
+import unicodedata
 from pathlib import Path
 
 import yaml
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 PLUGIN_ROOT = Path(os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parent.parent)
 SCHEMA_PATH = PLUGIN_ROOT / "config" / "profile.schema.json"
@@ -56,7 +58,7 @@ def deep_merge(base: dict, over: dict) -> dict:
 
 
 def _fill_defaults(schema: dict, data):
-    """Fill `default` values from the schema into data (objects only)."""
+    """Fill `default` values from the schema into data (objects, and the items of arrays of objects)."""
     if schema.get("type") == "object" and isinstance(data, dict):
         for key, sub in schema.get("properties", {}).items():
             if key not in data:
@@ -66,6 +68,9 @@ def _fill_defaults(schema: dict, data):
                     data[key] = {}
             if key in data:
                 _fill_defaults(sub, data[key])
+    elif schema.get("type") == "array" and isinstance(data, list) and isinstance(schema.get("items"), dict):
+        for item in data:
+            _fill_defaults(schema["items"], item)
     return data
 
 
@@ -83,7 +88,14 @@ def find_workspace(explicit: str | os.PathLike | None = None) -> Path:
     raise ProfileError(f"No {PROFILE_NAME} found from {cur} upwards; pass --workspace or set JOBSEARCH_WORKSPACE")
 
 
+PRESET_NAME = re.compile(r"^[a-z0-9-]+$")
+OUTPUT_FIELDS = {"first", "last", "company_slug", "kind"}
+DIR_FIELDS = {"company_slug", "role_slug", "date"}
+
+
 def _load_preset(kind: str, name: str) -> dict:
+    if not isinstance(name, str) or not PRESET_NAME.match(name):
+        raise ProfileError(f"Invalid {kind[:-1]} preset name {name!r}: use lowercase letters, digits and '-'")
     p = PLUGIN_ROOT / "presets" / kind / f"{name}.yaml"
     if not p.exists():
         raise ProfileError(f"Unknown {kind[:-1]} preset '{name}' (expected {p})")
@@ -94,7 +106,7 @@ def validate(data: dict) -> list[str]:
     """Schema validation plus the cross-field rules JSON Schema cannot express. Returns error strings."""
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     errs = [f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}"
-            for e in Draft202012Validator(schema).iter_errors(data)]
+            for e in Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(data)]
     w = data.get("scoring", {}).get("weights", {})
     if w and abs(sum(w.values()) - 1.0) > 1e-6:
         errs.append(f"scoring/weights: must sum to 1.0 (got {sum(w.values()):.4f})")
@@ -102,11 +114,36 @@ def validate(data: dict) -> list[str]:
     seq = [t.get(k) for k in ("strong", "good", "moderate", "weak")]
     if all(isinstance(x, int) for x in seq) and not all(a > b for a, b in zip(seq, seq[1:])):
         errs.append("scoring/thresholds: must be strictly descending strong > good > moderate > weak")
-    for key in ("base_cv", "knowledge_base", "tracker", "docs_dir", "backup_dir"):
+    def unsafe(v) -> bool:
+        return isinstance(v, str) and (os.path.isabs(v) or ".." in Path(v.replace("\\", "/")).parts)
+
+    for key in ("base_cv", "knowledge_base", "tracker", "docs_dir", "backup_dir", "output_dir_pattern"):
         v = data.get("paths", {}).get(key)
-        if v and (os.path.isabs(v) or ".." in Path(v).parts):
+        if v and unsafe(v):
             errs.append(f"paths/{key}: must be workspace-relative, no '..' (got {v!r})")
+    for v in data.get("tracker", {}).get("archives", []) or []:
+        if unsafe(v):
+            errs.append(f"tracker/archives: must be workspace-relative, no '..' (got {v!r})")
+    errs += _pattern_errors("identity/output_name_pattern", data.get("identity", {}).get("output_name_pattern"), OUTPUT_FIELDS)
+    errs += _pattern_errors("paths/output_dir_pattern", data.get("paths", {}).get("output_dir_pattern"), DIR_FIELDS)
     return errs
+
+
+def _pattern_errors(label: str, pattern, allowed: set[str]) -> list[str]:
+    if not isinstance(pattern, str):
+        return []
+    try:
+        fields = {f for _, f, _, _ in string.Formatter().parse(pattern) if f}
+    except ValueError as exc:
+        return [f"{label}: invalid pattern ({exc})"]
+    bad = sorted(fields - allowed)
+    return [f"{label}: unsupported placeholder(s) {bad}; allowed: {sorted(allowed)}"] if bad else []
+
+
+def _slug(text: str) -> str:
+    """File-name-safe slug that keeps letters from any script (accents folded where Unicode allows)."""
+    folded = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+    return re.sub(r"[^\w]+", "-", folded).strip("-_")
 
 
 class Profile:
@@ -152,18 +189,26 @@ class Profile:
 
     # ---- output names ------------------------------------------------------
     def output_stem(self, company_slug: str, kind: str) -> str:
+        """File-name stem for a generated document. `kind` is always part of the name, so a CV and a
+        letter for the same company can never collide."""
         parts = self.data["identity"]["full_name"].split()
-        first, last = (parts[0], parts[-1]) if parts else ("", "")
-        slug = lambda s: re.sub(r"[^A-Za-z0-9]+", "-", s).strip("-")
-        return self.data["identity"].get("output_name_pattern", "{first}-{last}-{company_slug}-{kind}").format(
-            first=slug(first), last=slug(last), company_slug=company_slug, kind=kind)
+        first, last = (parts[0], parts[-1]) if parts else ("candidate", "")
+        pattern = self.data["identity"].get("output_name_pattern") or "{first}-{last}-{company_slug}-{kind}"
+        if "{kind}" not in pattern:
+            pattern += "-{kind}"
+        stem = pattern.format(first=_slug(first), last=_slug(last), company_slug=company_slug, kind=kind)
+        return re.sub(r"-{2,}", "-", stem).strip("-")
 
 
 def load_profile(workspace: str | os.PathLike | None = None) -> Profile:
     ws = find_workspace(workspace)
     user = yaml.safe_load((ws / PROFILE_NAME).read_text(encoding="utf-8")) or {}
+    if not isinstance(user, dict):
+        raise ProfileError(f"{PROFILE_NAME} must be a YAML mapping")
     merged: dict = {}
-    presets = user.get("presets", {})
+    presets = user.get("presets") or {}
+    if not isinstance(presets, dict):
+        raise ProfileError("presets must be a mapping with optional 'role' and 'market'")
     for kind, key in (("markets", "market"), ("roles", "role")):
         if presets.get(key):
             merged = deep_merge(merged, _load_preset(kind, presets[key]))

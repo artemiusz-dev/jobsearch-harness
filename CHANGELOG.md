@@ -7,3 +7,4 @@
 - Config schema, role presets (frontend, generic, backend, data, pm) and market packs (generic, poland).
 - Workspace template with rules, docs and skeletons.
 - Board adapter contract (no scrapers included).
+- Hardening from the definition-of-done review: safer init-workspace cleanup, validated preset and path names, CV structure detection in any section order, PDF conversion timeouts and stale-output protection, whole-word company matching, status-role mapping, content-verified tracker restyle that keeps links and comments, narrower cleanup, and a privacy audit that inspects Office documents and the git index.

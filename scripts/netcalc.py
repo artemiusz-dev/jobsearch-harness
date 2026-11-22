@@ -32,7 +32,9 @@ def poland_eor(gross: float, p: dict) -> float:
 def poland_jdg(revenue: float, p: dict, annual_revenue: float | None = None) -> float:
     j = p["jdg_ryczalt"]
     annual = annual_revenue if annual_revenue is not None else revenue * 12
-    health = next(t["amount"] for t in j["health_monthly"] if t["up_to"] is None or annual <= t["up_to"])
+    health = next((t["amount"] for t in j["health_monthly"] if t["up_to"] is None or annual <= t["up_to"]), None)
+    if health is None:
+        raise ProfileError("market_params.poland.jdg_ryczalt.health_monthly needs a last tier with up_to: null")
     zus = j["zus_monthly"]
     tax = j["rate"] * (revenue - zus - j["health_deductible_share"] * health)
     return revenue - zus - health - tax - j["accounting_monthly"]
@@ -59,8 +61,12 @@ def main():
         params = prof.get("market_params", {})
         cur = prof.currency
         if rule == "generic_flat":
+            if a.structure:
+                print(f"note: --structure {a.structure!r} is ignored by the generic_flat rule", file=sys.stderr)
             print(f"{a.gross:,.0f} {cur} gross -> ~{generic_flat(a.gross, params):,.0f} net (flat estimate)")
         elif rule == "poland":
+            if "poland" not in params:
+                raise ProfileError("net_rule is 'poland' but market_params.poland is missing (use presets.market: poland)")
             p = params["poland"]
             s = (a.structure or "").lower()
             if s == "eor":
@@ -74,8 +80,10 @@ def main():
                 print(poland_uop_reference(a.gross, p))
         else:
             sys.exit(f"Unknown net_rule '{rule}'")
-    except (ProfileError, KeyError) as e:
+    except ProfileError as e:
         sys.exit(f"netcalc: {e}")
+    except KeyError as e:
+        sys.exit(f"netcalc: missing parameter {e} in market_params")
     print("Estimate only; verify with an official calculator.")
 
 
