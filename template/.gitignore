@@ -1,0 +1,32 @@
+# Private workspace: if you version it at all, keep the repository private.
+# This file is a safety net so personal data is never committed by accident.
+
+profile.yaml
+cv_base/*
+!cv_base/README.md
+knowledge-base.md
+interview-kb-*.md
+interview-intel.md
+pipeline.md
+rejection-analysis.md
+applications-tracker*.xlsx
+_backup/
+company_research/
+upskill/
+linkedin-*
+
+# skeletons are the public templates (init-workspace copies them to the names above)
+!*.skeleton.md
+
+# one folder per application: <company>-<role>-YYYY-MM-DD
+*-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+
+*.docx
+*.pdf
+*.xlsx
+.env
+.env.*
+.DS_Store
+.~lock.*
+*.tmp
+unpacked/
