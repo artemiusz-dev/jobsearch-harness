@@ -1,0 +1,8 @@
+{
+  "name": "jobsearch-harness",
+  "version": "0.1.0",
+  "description": "A job-agnostic job-search pipeline: scan boards, analyze job descriptions with a scoring rubric, tailor CVs and letters from specs, track applications, follow up, and prepare for interviews. Configured through a profile.yaml and role/market presets.",
+  "author": { "name": "jobsearch-harness contributors" },
+  "license": "MIT",
+  "keywords": ["job-search", "cv", "resume", "cover-letter", "applications", "interview-prep", "tracker"]
+}

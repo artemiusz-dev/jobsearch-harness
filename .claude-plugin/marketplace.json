@@ -1,0 +1,12 @@
+{
+  "name": "jobsearch-harness",
+  "description": "A job-agnostic job-search pipeline configured through a profile.yaml and role/market presets.",
+  "owner": { "name": "jobsearch-harness contributors" },
+  "plugins": [
+    {
+      "name": "jobsearch-harness",
+      "source": "./",
+      "description": "Scan boards, score job descriptions, tailor CVs and letters from specs, track applications, follow up, and prepare for interviews."
+    }
+  ]
+}
