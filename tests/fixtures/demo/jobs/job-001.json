@@ -1,0 +1,12 @@
+{
+  "id": "demo-001",
+  "title": "Senior Backend Engineer",
+  "company": "Brightwave Labs (fictional)",
+  "url": "https://jobs.example.com/brightwave/senior-backend-engineer",
+  "location": "Remote (Europe)",
+  "work_mode": "remote",
+  "salary": {"min": 90000, "max": 110000, "currency": "EUR", "period": "year", "employment_type": "employee"},
+  "posted_at": "2026-11-10",
+  "source": "demo_board",
+  "description": "Brightwave Labs builds a fictional analytics platform. You will own services written in Go on PostgreSQL and Kubernetes, design APIs, and mentor two engineers. Requirements: 6+ years backend experience, Go, PostgreSQL, distributed systems. Nice to have: Kafka. English (C1) required."
+}

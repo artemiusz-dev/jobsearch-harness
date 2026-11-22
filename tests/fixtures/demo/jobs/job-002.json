@@ -1,0 +1,11 @@
+{
+  "id": "demo-002",
+  "title": "Staff Platform Engineer",
+  "company": "Quillfield Systems (fictional)",
+  "url": "https://jobs.example.com/quillfield/staff-platform-engineer",
+  "location": "Berlin, hybrid",
+  "work_mode": "hybrid",
+  "posted_at": "2026-11-12",
+  "source": "demo_board",
+  "description": "Quillfield Systems runs a fictional logistics network. You will lead the platform team, own the deployment pipeline and observability stack. Requirements: 8+ years, Kubernetes, Go or Python, incident leadership. German (C1) required. Applicants must be EU citizens."
+}
