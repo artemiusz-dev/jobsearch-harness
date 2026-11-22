@@ -1,4 +1,20 @@
-# Thin example role pack (expanded in step 7).
+# Thin example role pack. Copy and extend for your own stack.
 targets:
-  search_keywords: [backend, api, distributed systems]
+  roles: [Senior Backend Engineer, Senior Software Engineer (Backend)]
+  seniority: [senior, staff]
+  stacks:
+    primary: [API design, relational databases, distributed systems]
+    secondary: [cloud platforms, message queues, containers]
+    avoid: [frontend-primary roles]
+  search_keywords: [backend, api, distributed systems, microservices]
   exclude_keywords: [intern, internship, junior]
+  avoid_company_types: [staffing agency, body-leasing consulting]
+
+scoring:
+  depth_risk_keywords: [concurrency, database internals, system design at scale]
+
+rubric_hints:
+  technical: "Core requirements are the profile's primary languages and data stores, with API design, testing and observability."
+  experience: "Ownership of services in production, on-call or incident experience, scale comparable to the role."
+  culture: "Engineering-led, sane on-call, product ownership."
+  career: "Backend-first, senior or staff scope, clear growth."

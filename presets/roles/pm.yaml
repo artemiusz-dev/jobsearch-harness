@@ -1,0 +1,20 @@
+# Thin example role pack for product management.
+targets:
+  roles: [Senior Product Manager, Product Manager]
+  seniority: [senior, lead]
+  stacks:
+    primary: [product discovery, roadmapping, stakeholder management]
+    secondary: [analytics, experimentation, technical fluency]
+    avoid: []
+  search_keywords: [product manager, product owner, product lead]
+  exclude_keywords: [intern, internship, junior, project coordinator]
+  avoid_company_types: [staffing agency]
+
+scoring:
+  depth_risk_keywords: [metrics and experimentation, prioritization frameworks, technical depth]
+
+rubric_hints:
+  technical: "For PM roles this scores domain and tool fluency: discovery methods, analytics, roadmapping, and the technical depth the JD asks for."
+  experience: "Ownership of a product or area end to end, outcomes shipped, team and stakeholder scope."
+  culture: "Empowered product teams over feature factories, access to users and data."
+  career: "Matches target PM roles and seniority with a clear growth path."

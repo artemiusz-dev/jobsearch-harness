@@ -1,0 +1,20 @@
+# Thin example role pack for data roles (engineering, analytics, science).
+targets:
+  roles: [Senior Data Engineer, Senior Data Scientist, Analytics Engineer]
+  seniority: [senior, staff]
+  stacks:
+    primary: [SQL, Python, data modeling]
+    secondary: [orchestration, cloud data warehouses, streaming, machine learning]
+    avoid: []
+  search_keywords: [data engineer, data platform, analytics, machine learning]
+  exclude_keywords: [intern, internship, junior]
+  avoid_company_types: [staffing agency, body-leasing consulting]
+
+scoring:
+  depth_risk_keywords: [statistics fundamentals, SQL optimization, pipeline design at scale]
+
+rubric_hints:
+  technical: "Core requirements are SQL, the primary language and the platform tools in the profile."
+  experience: "Ownership of pipelines or models in production, stakeholder work, comparable data volume."
+  culture: "Data treated as a product, partnership with the business, realistic expectations."
+  career: "Matches target data roles and seniority, with room to grow."

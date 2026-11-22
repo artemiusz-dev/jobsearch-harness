@@ -17,6 +17,22 @@
         "market": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "File stem under presets/markets/" }
       }
     },
+    "rubric_hints": {
+      "type": "object",
+      "description": "Role-specific wording for the scoring rubric dimensions (normally supplied by a role preset). Skills show these next to the 80-100 band.",
+      "additionalProperties": false,
+      "properties": {
+        "technical": { "type": "string" },
+        "experience": { "type": "string" },
+        "culture": { "type": "string" },
+        "career": { "type": "string" }
+      }
+    },
+    "market_params": {
+      "type": "object",
+      "description": "Free-form parameters read by the market pack's net-calculation rules (rates, fees, thresholds). See presets/markets/<market>.yaml.",
+      "additionalProperties": true
+    },
     "paths": {
       "type": "object",
       "description": "Workspace-relative paths. Never absolute machine paths.",

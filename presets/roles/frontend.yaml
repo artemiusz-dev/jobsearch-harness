@@ -1,0 +1,27 @@
+# Frontend engineering role pack. Defaults only; profile.yaml wins.
+targets:
+  roles: [Senior Frontend Engineer, Senior Frontend Developer]
+  fallback_roles: [Senior Software Engineer (Frontend), UI Engineer]
+  seniority: [senior, staff]
+  stacks:
+    primary: [TypeScript, React, Angular]
+    secondary: [JavaScript, Vue, Node.js, GraphQL, state management, component libraries, design systems]
+    avoid: [Java as primary stack, C#/.NET as primary stack, mobile-native, DevOps/SRE as primary role]
+  search_keywords: [frontend, front-end, typescript, react, angular, web ui]
+  exclude_keywords: [intern, internship, junior, wordpress, php]
+  avoid_company_types: [staffing agency, body-leasing consulting]
+
+scoring:
+  # Topics where past frontend interviews and rejections typically come from depth gaps.
+  # Add your own from rejection feedback.
+  depth_risk_keywords:
+    - JavaScript internals (event loop, promises, this, prototypes)
+    - CSS fundamentals (layout, specificity, rendering)
+    - large single-page-app system design
+    - browser performance profiling
+
+rubric_hints:
+  technical: "Core requirements are the profile's primary frontend frameworks plus TypeScript, with the usual ecosystem (state management, testing, build tooling). A Node.js backend counts as a match for TypeScript full-stack roles; subtract 5-10 when the JD stresses Node internals and the profile marks that as a gap."
+  experience: "Domain and scope match (ownership of a UI architecture or design system, mentoring, a comparable product). Judge scope and domain only; the framework is scored under Technical."
+  culture: "Product ownership, a real design/engineering partnership, low consulting-stigma risk, sane pace. Friction for pure platform/infra roles or an algorithm-heavy interview bar."
+  career: "Frontend-first (or TypeScript full-stack if listed in targets), senior or lead scope, clear growth. Compensation is not scored here."

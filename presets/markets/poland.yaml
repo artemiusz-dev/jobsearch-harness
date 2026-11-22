@@ -1,0 +1,45 @@
+# Poland market pack (optional). Informational reference parameters, NOT tax advice.
+# Figures are 2026 reference values collected from public sources by the pack authors; verify every one
+# against official publications and a qualified adviser before relying on it, and update yearly.
+compensation:
+  currency: PLN
+  period: month
+  net_rule: poland
+  employment_types: []        # all accepted: employee contract (UoP), own business (B2B), employer-of-record
+
+followups:
+  first_after_days: 7
+  second_after_days: 14
+  max_followups: 2
+
+boards:
+  - { id: justjoinit, adapter: justjoinit, regions: [PL], max_results: 30 }
+  - { id: nofluffjobs, adapter: nofluffjobs, regions: [PL], max_results: 30 }
+  - { id: bulldogjob, adapter: bulldogjob, regions: [PL], max_results: 30 }
+  - { id: pracuj, adapter: pracuj, regions: [PL], max_results: 30 }
+  - { id: linkedin, adapter: linkedin, regions: [PL], max_results: 30 }
+
+market_params:
+  poland:
+    # Employer-of-record (EOR) via a foundation, umowa o dzieło structure
+    eor:
+      service_fee: 450          # PLN per month (check the provider's current price list)
+      transfer_fee: 1           # PLN per transfer
+      copyright_pit_rate: 0.06  # flat PIT withheld when the work qualifies as copyright (typical for software)
+      annual_cap_50pct_kup: 120000   # annual cap on 50% author costs (shared across all employers in the year)
+    # Own business (JDG), flat 12% lump-sum tax (ryczałt) for software services
+    jdg_ryczalt:
+      rate: 0.12
+      zus_monthly: 1926.77      # social contributions (full ZUS), 2026 reference
+      accounting_monthly: 300   # assumed accountant fee (unconfirmed, adjust)
+      health_monthly:           # health contribution tier by annual revenue (PLN)
+        - { up_to: 60000, amount: 498.35 }
+        - { up_to: 300000, amount: 830.58 }
+        - { up_to: null, amount: 1495.04 }
+      health_deductible_share: 0.5   # share of health contribution deductible from the tax base
+    # Employment contract (UoP): reference points only (use an official calculator for anything binding)
+    uop_reference_points_gross_to_net_with_50pct_kup:
+      - { gross: 19000, net: 14000 }
+      - { gross: 22000, net: 16200 }
+    uop_reference_points_gross_to_net_without_kup:
+      - { gross: 22000, net: 15100 }

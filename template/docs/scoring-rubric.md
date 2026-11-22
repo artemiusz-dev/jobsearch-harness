@@ -18,7 +18,7 @@ Check the posting is open: not closed, filled or expired; "not accepting applica
 | Career Alignment | 0.25 | Matches `targets.roles` and `seniority`, clear growth | Good role, partially aligned | Does not build toward goals | Backwards step |
 | Compensation | 0.15 | Top of range at or above the outward ask and best net comfortably above `floor_net` | Clears the floor with margin | At the floor, or salary not listed (score `unlisted_salary_score`, default 50, and flag it) | Below the floor (also fails the gate) |
 
-Role presets (`presets/roles/<role>.yaml`) supply role-specific wording for the Technical and Career rows (for example which frameworks count as a primary match).
+Role presets (`presets/roles/<role>.yaml`) supply role-specific wording for these rows through `rubric_hints` in the merged profile (`technical`, `experience`, `culture`, `career`); show the hint next to the 80-100 band when scoring. The profile's own `rubric_hints` override the preset.
 
 `Overall Score = Σ weight × dimension score`
 

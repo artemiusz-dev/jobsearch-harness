@@ -1,3 +1,14 @@
-# Generic role pack: no stack assumptions. Step 7 expands these with rubric dimension wording.
+# Generic role pack: no stack assumptions. Everything here is a default that profile.yaml overrides.
 targets:
+  seniority: [senior]
   exclude_keywords: [intern, internship]
+  avoid_company_types: [staffing agency, body-leasing consulting]
+
+scoring:
+  depth_risk_keywords: []
+
+rubric_hints:
+  technical: "Core requirements are the profile's primary stacks; secondary stacks count as a match when the JD does not stress them."
+  experience: "Domain and seniority/scope match: ownership, mentoring, a similar product or domain. Judge scope and domain only."
+  culture: "Product ownership, low risk of an excluded company type, sane pace."
+  career: "Matches the target roles and seniority, with clear growth."
