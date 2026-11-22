@@ -46,7 +46,7 @@ If the script reports an error, relay it plainly and fix the answer; never edit 
 
 Tell the user the next steps, in order:
 1. Fill `knowledge-base.md` (start with §1 and the career timeline and achievements; only verified facts, `NOT FOUND` where no number exists).
-2. Configure at least one job-board adapter in `profile.yaml -> boards` (`docs/adapters.md` in the plugin).
+2. Configure at least one job-board adapter in `profile.yaml -> boards` (`${CLAUDE_PLUGIN_ROOT}/docs/adapters.md`).
 3. Run a first scan with the job-scanner skill, or paste a JD for the jd-analyzer.
 
 ## Privacy reminders (say them)

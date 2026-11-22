@@ -42,7 +42,7 @@ instead of loading old trackers into context (it ignores legal suffixes and pare
 
 ## Step 2: Search the Boards
 
-Each entry in `$P.boards` names an **adapter**: a connector or MCP tool pair that follows the contract in `docs/adapters.md` (a search tool and a get-details tool). Resolve each enabled board to its tools. Skip a board whose tools are not available in this session and say so in the summary. Launch as many searches in parallel as possible.
+Each entry in `$P.boards` names an **adapter**: a connector or MCP tool pair that follows the contract in `${CLAUDE_PLUGIN_ROOT}/docs/adapters.md` (a search tool and a get-details tool). Resolve each enabled board to its tools. Skip a board whose tools are not available in this session and say so in the summary. Launch as many searches in parallel as possible.
 
 Build the queries from the profile, not from memory:
 

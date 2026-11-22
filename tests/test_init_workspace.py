@@ -62,6 +62,13 @@ def test_refuses_non_empty_target(tmp_path):
     assert (t / "keep.txt").read_text() == "x"
 
 
+def test_refuses_target_inside_plugin_repo(tmp_path):
+    inside = Path(__file__).resolve().parent.parent / "my-private-workspace"
+    r = run(tmp_path, inside)
+    assert r.returncode != 0 and "outside the plugin" in r.stderr
+    assert not inside.exists()
+
+
 def test_missing_answer_fails_and_leaves_nothing(tmp_path):
     t = tmp_path / "ws"
     bad = {k: v for k, v in ANSWERS.items() if k != "floor_gross"}

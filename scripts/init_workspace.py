@@ -117,6 +117,8 @@ def create_tracker(target: Path, prof: dict):
 
 
 def init(target: Path, answers: dict, cv: Path | None, market: str, role: str) -> list[str]:
+    if target == PLUGIN or PLUGIN in target.parents:
+        raise InitError("The workspace holds personal data and must live outside the plugin repository")
     if target.exists() and any(target.iterdir()):
         raise InitError(f"Target {target} exists and is not empty; refusing to overwrite")
     target.mkdir(parents=True, exist_ok=True)
