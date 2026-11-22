@@ -411,3 +411,114 @@ def test_verify_layout_exit_codes_distinguish_bad_invocation_from_no_extractor(t
     assert r.returncode == 3 and "skipped" in r.stderr
     r = subprocess.run([PYTHON, str(SCRIPTS / "verify_layout.py"), str(tmp_path / "missing.pdf")], capture_output=True, text=True)
     assert r.returncode == 2 and "not found" in r.stderr
+
+
+# ---------------------------------------------------------------- second review round
+def cv_paragraphs(path, lines):
+    """lines: (text, style) with style in plain | bold | heading."""
+    d = docx.Document()
+    for text, style in lines:
+        if style == "heading":
+            d.add_paragraph(text, style="Heading 1")
+        else:
+            p = d.add_paragraph()
+            p.add_run(text).bold = style == "bold"
+    d.save(path)
+    return docx.Document(str(path)).paragraphs
+
+
+H3 = [("ALEX EXAMPLE", "plain"), ("Engineer", "plain"), ("alex@example.com", "plain")]
+
+
+def test_real_heading_beats_a_short_body_line_containing_the_keyword(workspace):
+    P = cv_paragraphs(workspace / "x.docx", H3 + [
+        ("PROFESSIONAL SUMMARY", "plain"), ("Summary.", "plain"),
+        ("PROFESSIONAL EXPERIENCE", "plain"), ("Strong SQL skills", "plain"), ("Did things.", "plain"),
+        ("TECHNICAL SKILLS", "plain"), ("Languages: Go", "plain")])
+    m = cb.cv_map(jp.load_profile(workspace), P)
+    assert P[m["skills_heading"]].text == "TECHNICAL SKILLS"
+    assert [P[i].text for i in m["skills"]] == ["Languages: Go"]
+
+
+def test_plain_title_case_heading_is_used_when_nothing_better_exists(workspace):
+    P = cv_paragraphs(workspace / "x.docx", H3 + [
+        ("PROFESSIONAL SUMMARY", "plain"), ("Summary.", "plain"), ("Technical skills", "plain"),
+        ("Languages: Go", "plain"), ("PROFESSIONAL EXPERIENCE", "plain"), ("Job", "plain")])
+    m = cb.cv_map(jp.load_profile(workspace), P)
+    assert P[m["skills_heading"]].text == "Technical skills"
+
+
+@pytest.mark.parametrize("line", ["GO, PYTHON, SQL", "PYTHON | GO | SQL", "AWS/GCP/AZURE"])
+def test_all_caps_skills_lines_do_not_end_the_skills_block(workspace, line):
+    P = cv_paragraphs(workspace / "x.docx", H3 + [
+        ("PROFESSIONAL SUMMARY", "plain"), ("Summary.", "plain"), ("TECHNICAL SKILLS", "plain"),
+        (line, "plain"), ("Data: Postgres", "plain"), ("PROFESSIONAL EXPERIENCE", "plain"), ("Job", "plain")])
+    m = cb.cv_map(jp.load_profile(workspace), P)
+    assert [P[i].text for i in m["skills"]] == [line, "Data: Postgres"]
+
+
+@pytest.mark.parametrize("style", ["bold", "heading"])
+def test_bold_or_styled_headings_end_the_skills_block(workspace, style):
+    P = cv_paragraphs(workspace / "x.docx", H3 + [
+        ("PROFESSIONAL SUMMARY", "plain"), ("Summary.", "plain"), ("PROFESSIONAL EXPERIENCE", "plain"), ("Job", "plain"),
+        ("TECHNICAL SKILLS", "plain"), ("Languages: Go", "plain"), ("Education", style), ("Some University", "plain")])
+    m = cb.cv_map(jp.load_profile(workspace), P)
+    assert [P[i].text for i in m["skills"]] == ["Languages: Go"]
+
+
+def test_other_headings_setting_ends_the_block_for_plain_headings(workspace):
+    lines = H3 + [("PROFESSIONAL SUMMARY", "plain"), ("Summary.", "plain"), ("PROFESSIONAL EXPERIENCE", "plain"),
+                  ("Job", "plain"), ("TECHNICAL SKILLS", "plain"), ("Languages: Go", "plain"),
+                  ("Certifications", "plain"), ("Some Cert", "plain")]
+    P = cv_paragraphs(workspace / "x.docx", lines)
+    assert len(cb.cv_map(jp.load_profile(workspace), P)["skills"]) == 3          # swallowed without the setting
+    edit_profile(workspace, lambda d: d.__setitem__("cv_map", {"other_headings": ["certification"]}))
+    assert len(cb.cv_map(jp.load_profile(workspace), P)["skills"]) == 1
+
+
+def test_overridden_statuses_need_matching_status_roles(workspace):
+    edit_profile(workspace, lambda d: d["tracker"].__setitem__("statuses", [{"name": "Submitted"}, {"name": "Done"}]))
+    with pytest.raises(jp.ProfileError, match="status_roles.*APPLIED"):
+        jp.load_profile(workspace)                                                # roles fall back to defaults that do not exist
+    edit_profile(workspace, lambda d: d["tracker"].__setitem__("status_roles", {"open_for_followup": ["Missing"]}))
+    with pytest.raises(jp.ProfileError, match="Missing"):
+        jp.load_profile(workspace)
+    edit_profile(workspace, lambda d: d["tracker"].__setitem__("status_roles", {"open_for_followup": ["Submitted"]}))
+    assert jp.load_profile(workspace)["tracker"]["status_roles"]["open_for_followup"] == ["Submitted"]
+
+
+def test_overriding_statuses_with_the_default_names_needs_no_roles(workspace):
+    defaults = [{"name": n} for n in ["APPLIED", "CV SENT", "SCREENING", "INTERVIEW", "OFFER"]]
+    edit_profile(workspace, lambda d: d["tracker"].__setitem__("statuses", defaults))
+    jp.load_profile(workspace)
+
+
+def test_one_word_names_are_not_doubled(workspace):
+    edit_profile(workspace, lambda d: d["identity"].__setitem__("full_name", "Madonna"))
+    assert jp.load_profile(workspace).output_stem("acme", "CV") == "Madonna-acme-CV"
+
+
+def test_restyle_needs_only_the_columns_it_uses(workspace):
+    f = workspace / "applications-tracker.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Pipeline"
+    ws.append(["#", "Status", "Updated", "Notes"])
+    ws.append([None, "BACKLOG", "2026-01-01", "a"])
+    ws.append([None, "OFFER", "2026-02-01", "b"])
+    wb.save(f)
+    assert run("restyle_tracker.py", workspace).returncode == 0
+    ws = openpyxl.load_workbook(f)["Pipeline"]
+    assert [r[1] for r in ws.iter_rows(min_row=2, values_only=True)] == ["OFFER", "BACKLOG"]
+
+
+def test_audit_survives_unreadable_index_entries_and_ignores_binary_noise(tmp_path):
+    from test_privacy_audit import commit, make_repo, run as audit_run, sh
+    r = make_repo(tmp_path)
+    commit(r, "a.md", "clean\n")
+    (r / "icon.bin").write_bytes(b"\x89PNG\x00\x01" + b"mail jane" + b"@realmail.net 555-" + b"123-4567" + b"\xff\xfe")
+    sh(r, "add", "-A")
+    sh(r, "update-index", "--add", "--cacheinfo", "160000," + "1" * 40 + ",submod")      # a gitlink: no blob to read
+    out = audit_run(r)
+    assert "submod" in out.stdout and "cannot be read" in out.stdout and "Traceback" not in out.stderr
+    assert "realmail" not in out.stdout and "phone-like" not in out.stdout                 # binary noise is not flagged

@@ -293,6 +293,7 @@
         "summary_heading": { "type": "string", "default": "PROFESSIONAL SUMMARY" },
         "skills_heading": { "type": "string", "default": "SKILLS" },
         "experience_heading": { "type": "string", "default": "PROFESSIONAL EXPERIENCE" },
+        "other_headings": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Keywords of other section headings (education, certifications, ...) that end the skills block, for headings that are not bold, UPPERCASE or heading-styled." },
         "keep_with_next_prefixes": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Paragraphs starting with one of these are kept with the next one (e.g. a 'Key Contributions' label)." },
         "indices": {
           "type": "object",

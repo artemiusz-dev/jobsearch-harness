@@ -143,8 +143,29 @@ def guard_target(path, force):
 
 
 # ---------------------------------------------------------------- base CV structure
-def _is_heading_like(text):
-    return bool(text) and len(text) <= 40 and ':' not in text and text.isupper()
+def _is_bold(p):
+    runs = [r for r in p.runs if r.text.strip()]
+    return bool(runs) and all(r.bold for r in runs)
+
+
+def _style_is_heading(p):
+    name = (p.style.name if p.style is not None else '') or ''
+    return name.lower().startswith(('heading', 'title'))
+
+
+def _looks_like_heading(p, text, extra_headings):
+    """A section heading: a short paragraph that is styled as a heading, bold, in UPPERCASE, or named in
+    cv_map.other_headings. Skills lines ('Label: values', comma/pipe-separated lists) are never headings."""
+    if not text or len(text) > 40:
+        return False
+    low = text.lower()
+    if any(k.lower() in low for k in extra_headings):
+        return True
+    if _style_is_heading(p):
+        return True
+    if any(ch in text for ch in ':,|;/'):
+        return False
+    return text.isupper() or _is_bold(p)
 
 
 def cv_map(prof, paragraphs):
@@ -153,10 +174,13 @@ def cv_map(prof, paragraphs):
 
     Layout rules: the first three non-empty paragraphs are name, title and contact line (override with
     cv_map.indices). Section headings are short paragraphs after that block containing the configured
-    keyword. The skills block runs from its heading to the next heading, in either order of sections;
-    other section headings must be short and UPPERCASE (or be the summary/experience heading)."""
+    keyword; a heading-looking paragraph (heading style, bold, or UPPERCASE) is preferred over a plain
+    short line that merely contains the keyword. The skills block runs from its heading to the next
+    heading, in either order of sections. Other headings (education, certifications, ...) end it when
+    they look like headings or are listed in cv_map.other_headings."""
     m = prof['cv_map']
     idx = m.get('indices', {})
+    extra = m.get('other_headings', [])
     texts = [p.text.strip() for p in paragraphs]
     head = [i for i, t in enumerate(texts) if t]
     if len(head) < 3:
@@ -166,9 +190,15 @@ def cv_map(prof, paragraphs):
 
     def find(keyword):
         kw = keyword.lower()
+        plain = None
         for i in range(after_header + 1, len(texts)):     # a heading is a short paragraph containing the keyword
             if len(texts[i]) <= 40 and kw in texts[i].lower():
-                return i
+                if _looks_like_heading(paragraphs[i], texts[i], ()) or _style_is_heading(paragraphs[i]):
+                    return i
+                if plain is None:
+                    plain = i
+        if plain is not None:
+            return plain
         raise SystemExit(f"Base CV has no short section heading containing '{keyword}' below the header block. "
                          "Set cv_map.*_heading in profile.yaml (see: cvbuild.py --map).")
 
@@ -179,7 +209,7 @@ def cv_map(prof, paragraphs):
     known = {sh, eh}
     skills = []
     for i in range(kh + 1, len(texts)):
-        if i in known or _is_heading_like(texts[i]):
+        if i in known or _looks_like_heading(paragraphs[i], texts[i], extra):
             break
         if texts[i]:
             skills.append(i)

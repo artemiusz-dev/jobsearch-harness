@@ -124,8 +124,33 @@ def validate(data: dict) -> list[str]:
     for v in data.get("tracker", {}).get("archives", []) or []:
         if unsafe(v):
             errs.append(f"tracker/archives: must be workspace-relative, no '..' (got {v!r})")
+    errs += _status_role_errors(data.get("tracker", {}))
     errs += _pattern_errors("identity/output_name_pattern", data.get("identity", {}).get("output_name_pattern"), OUTPUT_FIELDS)
     errs += _pattern_errors("paths/output_dir_pattern", data.get("paths", {}).get("output_dir_pattern"), DIR_FIELDS)
+    return errs
+
+
+DEFAULT_STATUS_ROLES = {"open_for_followup": ["APPLIED", "CV SENT"], "replied": ["SCREENING", "INTERVIEW", "OFFER"],
+                        "interview": ["INTERVIEW", "OFFER"], "offer": ["OFFER"]}
+
+
+def _status_role_errors(tracker: dict) -> list[str]:
+    """Status names used by the scripts (follow-ups, conversion bands) must exist in a customised pipeline."""
+    statuses = tracker.get("statuses")
+    if not statuses:
+        return []
+    names = {s.get("name") for s in statuses if isinstance(s, dict)}
+    roles = tracker.get("status_roles")
+    if roles is None:
+        roles = DEFAULT_STATUS_ROLES                      # what the scripts fall back to
+        hint = " (set tracker.status_roles to map your own names)"
+    else:
+        hint = ""
+    errs = []
+    for role, wanted in roles.items():
+        missing = sorted(n for n in wanted if n not in names)
+        if missing:
+            errs.append(f"tracker/status_roles/{role}: status(es) {missing} are not in tracker.statuses{hint}")
     return errs
 
 
@@ -192,7 +217,7 @@ class Profile:
         """File-name stem for a generated document. `kind` is always part of the name, so a CV and a
         letter for the same company can never collide."""
         parts = self.data["identity"]["full_name"].split()
-        first, last = (parts[0], parts[-1]) if parts else ("candidate", "")
+        first, last = ((parts[0], parts[-1]) if len(parts) > 1 else (parts[0], "")) if parts else ("candidate", "")
         pattern = self.data["identity"].get("output_name_pattern") or "{first}-{last}-{company_slug}-{kind}"
         if "{kind}" not in pattern:
             pattern += "-{kind}"

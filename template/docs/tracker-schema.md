@@ -8,7 +8,7 @@ File: `paths.tracker` (default `applications-tracker.xlsx`), sheet `tracker.shee
 - The salary column name uses `compensation.currency` (for example `Salary (EUR gross)`), or `tracker.salary_column` if set.
 - `Folder` - the company folder name (for example `acme-senior-backend-2026-03-28`) for cross-referencing `analysis.md` and docs.
 - Stage columns (`Applied` -> `Offer / Rejected`) hold a date (YYYY-MM-DD) when the stage is completed and stay blank otherwise.
-- Scripts depend on the names `#`, `Company`, `Role`, `Status`, `Match %`, `Applied`, `Intro Call`, `Tech Interview`, `Final Interview`, `Offer / Rejected`, `Next Action`, `Updated`. Keep them.
+- `restyle_tracker.py` needs `#`, `Status` and `Updated`. The other scripts read, when present: `Company`, `Role`, `Match %`, `Applied`, `Intro Call`, `Tech Interview`, `Final Interview`, `Offer / Rejected`, `Next Action`. Keep those names if you customise `tracker.columns`.
 
 ## Valid status values (default)
 | Status | Meaning | Row color |
@@ -28,7 +28,7 @@ File: `paths.tracker` (default `applications-tracker.xlsx`), sheet `tracker.shee
 | `WITHDRAWN` | Withdrew or role filled | grey (dimmed) |
 
 ## Status roles
-Scripts need to know which of your statuses mean "submitted, waiting", "got a reply", "reached interviews" and "offer". The defaults match the table above. If you rename statuses, map them in `profile.yaml`:
+Scripts need to know which of your statuses mean "submitted, waiting", "got a reply", "reached interviews" and "offer". The defaults match the table above. If you rename statuses (`tracker.statuses`), you must also map them in `profile.yaml`; the profile fails validation if a mapped name is missing from your statuses:
 
 ```yaml
 tracker:

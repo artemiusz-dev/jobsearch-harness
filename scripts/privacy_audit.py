@@ -105,7 +105,7 @@ def scan_office(label: str, blob: bytes, deny, problems: list[str]):
 def audit(repo: Path, denylist: Path | None) -> list[str]:
     problems: list[str] = []
     deny = load_denylist(denylist)
-    files = [f for f in git(repo, "ls-files").splitlines() if f]
+    files = sorted({f for f in git(repo, "ls-files").splitlines() if f})     # unmerged paths are listed once per stage
 
     for f in files:
         p = Path(f)
@@ -114,14 +114,22 @@ def audit(repo: Path, denylist: Path | None) -> list[str]:
             problems.append(f"forbidden file type tracked: {f}")
         if deny and deny.search(f):
             problems.append(f"private term in file name: {f}")
-        blob = git(repo, "show", f":{f}", binary=True)          # the staged/committed content
+        try:
+            blob = git(repo, "show", f":{f}", binary=True)      # the staged/committed content
+        except AuditError:
+            # unmerged path (mid-conflict), submodule entry, ...: report this file and keep auditing the rest
+            problems.append(f"{f}: content cannot be read from the index (unmerged or non-file entry); resolve it and rerun")
+            continue
         if p.suffix.lower() in OFFICE_EXT:
             scan_office(f, blob, deny, problems)
             continue
         try:
             text = blob.decode("utf-8")
         except UnicodeDecodeError:
-            text = blob.decode("latin-1")                        # other binaries: best-effort byte scan
+            # other binary (image, font, ...): generic email/phone patterns would only match noise, so only
+            # the private denylist is applied to its bytes
+            scan_text(f, blob.decode("latin-1"), deny, problems, generic=False)
+            continue
         scan_text(f, text, deny, problems, generic=f not in SKIP_CONTENT)
 
     try:

@@ -29,8 +29,7 @@ from openpyxl.utils import get_column_letter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jobprofile import ProfileError, add_workspace_arg, load_profile  # noqa: E402
 
-REQUIRED_COLUMNS = ["#", "Company", "Role", "Status", "Match %", "Applied", "Intro Call",
-                    "Tech Interview", "Final Interview", "Offer / Rejected", "Next Action", "Updated"]
+REQUIRED_COLUMNS = ["#", "Status", "Updated"]      # what sorting and renumbering need; other columns are optional
 BASE_WIDTHS = {
     "#": 4, "Company": 24, "Role": 36, "Source": 22, "Status": 14, "Match %": 10,
     "Applied": 12, "Intro Call": 12, "Assignment": 12, "Tech Interview": 14, "Final Interview": 14,
