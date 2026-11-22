@@ -1,0 +1,7 @@
+# Generic market pack: no country-specific tax or board assumptions.
+compensation:
+  net_rule: generic_flat
+followups:
+  first_after_days: 7
+  second_after_days: 14
+  max_followups: 2

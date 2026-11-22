@@ -1,0 +1,38 @@
+# Personal workspace data (never publish)
+workspace/
+cv_base/*
+!cv_base/README.md
+knowledge-base.md
+interview-kb-*.md
+!interview-kb-*.skeleton.md
+interview-intel.md
+pipeline.md
+rejection-analysis.md
+company_research/
+upskill/
+_backup/
+profile.yaml
+!config/profile.example.yaml
+
+# Binary / office artifacts (fixtures allowed via tests/fixtures/)
+*.docx
+*.pdf
+*.xlsx
+*.zip
+*.skill
+!tests/fixtures/**
+
+# Secrets / env
+.env
+.env.*
+*.pem
+*.key
+
+# Noise
+.DS_Store
+__pycache__/
+*.pyc
+.tmp/
+*.tmp
+.venv/
+.pytest_cache/

@@ -1,0 +1,3 @@
+# Generic role pack: no stack assumptions. Step 7 expands these with rubric dimension wording.
+targets:
+  exclude_keywords: [intern, internship]

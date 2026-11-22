@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/jobsearch-harness/profile.schema.json",
+  "title": "jobsearch-harness profile",
+  "description": "Single source of truth for everything personal or market-specific. Skills and scripts read this file instead of hardcoding names, stacks, currencies or locations.",
+  "type": "object",
+  "required": ["identity", "targets", "compensation", "locations", "languages", "scoring", "tracker"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "presets": {
+      "type": "object",
+      "description": "Preset packs merged under this file (this file always wins).",
+      "additionalProperties": false,
+      "properties": {
+        "role": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "File stem under presets/roles/" },
+        "market": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "File stem under presets/markets/" }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "description": "Workspace-relative paths. Never absolute machine paths.",
+      "additionalProperties": false,
+      "properties": {
+        "base_cv": { "type": "string", "default": "cv_base/base_cv.docx" },
+        "knowledge_base": { "type": "string", "default": "knowledge-base.md" },
+        "tracker": { "type": "string", "default": "applications-tracker.xlsx" },
+        "docs_dir": { "type": "string", "default": "docs" },
+        "output_dir_pattern": {
+          "type": "string",
+          "default": "{company_slug}-{role_slug}-{date}",
+          "description": "Folder created per application. Placeholders: company_slug, role_slug, date."
+        },
+        "backup_dir": { "type": "string", "default": "_backup" }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "required": ["full_name", "email"],
+      "additionalProperties": false,
+      "properties": {
+        "full_name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "links": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "format": "uri" },
+          "description": "e.g. linkedin, github, portfolio"
+        },
+        "output_name_pattern": {
+          "type": "string",
+          "default": "{first}-{last}-{company_slug}-{kind}",
+          "description": "File name stem for generated files. Placeholders: first, last, company_slug, kind (CV or Cover-Letter)."
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "required": ["roles", "seniority"],
+      "additionalProperties": false,
+      "properties": {
+        "roles": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "Primary role titles to search for." },
+        "fallback_roles": { "type": "array", "items": { "type": "string" } },
+        "seniority": { "type": "array", "minItems": 1, "items": { "enum": ["junior", "mid", "senior", "staff", "principal", "lead", "manager", "director"] } },
+        "stacks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "primary": { "type": "array", "items": { "type": "string" } },
+            "secondary": { "type": "array", "items": { "type": "string" } },
+            "avoid": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "search_keywords": { "type": "array", "items": { "type": "string" } },
+        "exclude_keywords": { "type": "array", "items": { "type": "string" } },
+        "avoid_company_types": { "type": "array", "items": { "type": "string" }, "description": "e.g. consulting, staffing agency" }
+      }
+    },
+    "locations": {
+      "type": "object",
+      "required": ["accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["place", "modes"],
+            "additionalProperties": false,
+            "properties": {
+              "place": { "type": "string", "description": "City, country or 'remote'" },
+              "modes": { "type": "array", "minItems": 1, "items": { "enum": ["remote", "hybrid", "onsite"] } },
+              "relocation": { "enum": ["no", "open", "required_support"], "default": "no" }
+            }
+          }
+        },
+        "reject_other_onsite": { "type": "boolean", "default": true, "description": "Onsite/hybrid outside the accepted list is a gate failure." }
+      }
+    },
+    "compensation": {
+      "type": "object",
+      "required": ["currency", "floor_gross"],
+      "additionalProperties": false,
+      "properties": {
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "period": { "enum": ["month", "year", "day"], "default": "month" },
+        "floor_gross": { "type": "number", "exclusiveMinimum": 0 },
+        "floor_net": { "type": "number", "exclusiveMinimum": 0 },
+        "ask_gross": { "type": "number", "exclusiveMinimum": 0 },
+        "net_rule": { "type": "string", "description": "Name of the net-calculation function in the market pack, e.g. 'generic_flat'." },
+        "employment_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Accepted structures (employee, contractor, EOR...). Empty = all accepted."
+        },
+        "unlisted_salary_score": { "type": "integer", "minimum": 0, "maximum": 100, "default": 50 }
+      }
+    },
+    "languages": {
+      "type": "object",
+      "required": ["spoken"],
+      "additionalProperties": false,
+      "properties": {
+        "spoken": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["language", "level"],
+            "additionalProperties": false,
+            "properties": {
+              "language": { "type": "string" },
+              "level": { "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "native"] }
+            }
+          }
+        },
+        "fail_if_required_not_listed": { "type": "boolean", "default": true },
+        "flag_if_required_level_above": { "type": "boolean", "default": true, "description": "Flag (not fail) when a listed language is required above the stated level." }
+      }
+    },
+    "work_authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authorized_in": { "type": "array", "items": { "type": "string" }, "description": "Countries/regions where the candidate may work without sponsorship." },
+        "needs_sponsorship_elsewhere": { "type": "boolean", "default": false },
+        "hard_stop_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["must be a citizen", "citizens only", "security clearance"],
+          "description": "Posting wording that fails the eligibility gate."
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "required": ["weights", "thresholds"],
+      "additionalProperties": false,
+      "properties": {
+        "rubric_version": { "type": "string", "default": "v2" },
+        "weights": {
+          "type": "object",
+          "required": ["technical", "experience", "culture", "career", "compensation"],
+          "additionalProperties": false,
+          "properties": {
+            "technical": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.30 },
+            "experience": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.20 },
+            "culture": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.10 },
+            "career": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.25 },
+            "compensation": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.15 }
+          },
+          "description": "Must sum to 1.0 (checked by profile.py, JSON Schema cannot express it)."
+        },
+        "thresholds": {
+          "type": "object",
+          "required": ["strong", "good", "moderate", "weak"],
+          "additionalProperties": false,
+          "properties": {
+            "strong": { "type": "integer", "default": 75 },
+            "good": { "type": "integer", "default": 60 },
+            "moderate": { "type": "integer", "default": 45 },
+            "weak": { "type": "integer", "default": 30 },
+            "apply_this_week_from": { "type": "integer", "default": 68 }
+          },
+          "description": "Must be strictly descending (checked by profile.py)."
+        },
+        "technical_floor": { "type": "integer", "default": 45, "description": "Technical score below this caps the verdict at Moderate." },
+        "gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "liveness": { "type": "boolean", "default": true },
+            "employment_type": { "type": "boolean", "default": true },
+            "location": { "type": "boolean", "default": true },
+            "eligibility": { "type": "boolean", "default": true },
+            "language": { "type": "boolean", "default": true }
+          }
+        },
+        "depth_risk_keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "JD topics that historically caused rejections; if present, subtract 5-10 from Technical."
+        }
+      }
+    },
+    "boards": {
+      "type": "array",
+      "description": "Job sources. Each entry maps to a board adapter (see docs/adapters.md).",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+          "adapter": { "type": "string", "description": "Tool-name prefix or connector id implementing the adapter contract." },
+          "enabled": { "type": "boolean", "default": true },
+          "regions": { "type": "array", "items": { "type": "string" } },
+          "max_results": { "type": "integer", "minimum": 1, "default": 50 }
+        }
+      }
+    },
+    "followups": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "first_after_days": { "type": "integer", "minimum": 1, "default": 7 },
+        "second_after_days": { "type": "integer", "minimum": 1, "default": 14 },
+        "max_followups": { "type": "integer", "minimum": 0, "default": 2 },
+        "stale_after_days": { "type": "integer", "minimum": 1, "default": 60, "description": "Quiet this long = stale-sweep candidate (propose only)." },
+        "referral_first": { "type": "boolean", "default": true }
+      }
+    },
+    "tracker": {
+      "type": "object",
+      "required": ["sheet"],
+      "additionalProperties": false,
+      "properties": {
+        "sheet": { "type": "string", "default": "Pipeline" },
+        "salary_column": { "type": "string", "description": "Defaults to 'Salary (<currency> gross)'." },
+        "columns": { "type": "array", "items": { "type": "string" }, "description": "Override column order." },
+        "archives": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Workspace-relative paths of older tracker snapshots, read-only, used by tracker_query. Do not point at a folder of timestamped backups." },
+        "company_suffixes": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Extra legal-form words ignored when matching company names (added to a built-in generic list)." },
+        "statuses": {
+          "type": "array",
+          "description": "Override the status enum; order = sort priority, most actionable first.",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "description": "Row background." },
+              "text_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "description": "Status cell text." },
+              "dimmed": { "type": "boolean", "default": false }
+            }
+          }
+        }
+      }
+    },
+    "cv_map": {
+      "type": "object",
+      "description": "How the base CV is structured. Prefer heading detection; use explicit indices only as an escape hatch.",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["headings", "indices"], "default": "headings" },
+        "summary_heading": { "type": "string", "default": "PROFESSIONAL SUMMARY" },
+        "skills_heading": { "type": "string", "default": "SKILLS" },
+        "experience_heading": { "type": "string", "default": "PROFESSIONAL EXPERIENCE" },
+        "keep_with_next_prefixes": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Paragraphs starting with one of these are kept with the next one (e.g. a 'Key Contributions' label)." },
+        "indices": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 },
+          "description": "Named paragraph indices. Recognised keys: name, title, contact, summary. Overrides heading detection for those."
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "forbid_em_dash": { "type": "boolean", "default": true, "description": "Reject em dashes in generated CV/letter text." }
+      }
+    }
+  }
+}

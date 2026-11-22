@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Blocks commits that contain private terms (external denylist) or forbidden file types.
+# The denylist lives outside the repo and is never committed.
+set -euo pipefail
+
+DENYLIST="${JOBSEARCH_DENYLIST:-$HOME/.config/jobsearch-private/denylist.txt}"
+fail=0
+
+# 1. Forbidden artifacts (fixtures under tests/fixtures/ are allowed)
+while IFS= read -r f; do
+  case "$f" in
+    tests/fixtures/*) ;;
+    *.docx|*.pdf|*.xlsx|*.zip|*.skill|*.DS_Store|*/.DS_Store|.DS_Store|*.env|.env*|*.pyc)
+      echo "pre-commit: forbidden file type: $f" >&2; fail=1 ;;
+  esac
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+# 2. Private-term scan of file names and added lines
+if [ -f "$DENYLIST" ]; then
+  names=$(git diff --cached --name-only --diff-filter=ACMR)
+  if printf '%s\n' "$names" | grep -iE -f "$DENYLIST" >/dev/null 2>&1; then
+    echo "pre-commit: private term in a file NAME" >&2; fail=1
+  fi
+  if git diff --cached -U0 --diff-filter=ACMR | grep -E '^\+[^+]' | grep -iE -f "$DENYLIST" >/dev/null 2>&1; then
+    echo "pre-commit: private term in added content (run: git diff --cached | grep -iEn -f \$DENYLIST)" >&2; fail=1
+  fi
+else
+  echo "pre-commit: denylist not found at $DENYLIST; refusing to commit" >&2; fail=1
+fi
+
+# 3. Author identity must be the anonymous one
+email=$(git config user.email || true)
+case "$email" in
+  *@users.noreply.github.com) ;;
+  *) echo "pre-commit: user.email must be a noreply address (got: $email)" >&2; fail=1 ;;
+esac
+
+exit $fail

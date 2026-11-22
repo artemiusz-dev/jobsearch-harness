@@ -1,0 +1,83 @@
+# Fictional example profile. Copy to the workspace root as `profile.yaml` (git-ignored) and edit.
+# Every value below is invented.
+schema_version: 1
+
+presets:
+  role: backend
+  market: generic
+
+paths:
+  base_cv: cv_base/base_cv.docx
+  knowledge_base: knowledge-base.md
+  tracker: applications-tracker.xlsx
+  docs_dir: docs
+  output_dir_pattern: "{company_slug}-{role_slug}-{date}"
+  backup_dir: _backup
+
+identity:
+  full_name: Alex Example
+  email: alex@example.com
+  links:
+    linkedin: https://www.linkedin.com/in/alex-example
+  output_name_pattern: "{first}-{last}-{company_slug}-CV"
+
+targets:
+  roles: [Senior Backend Engineer, Staff Backend Engineer]
+  fallback_roles: [Senior Platform Engineer]
+  seniority: [senior, staff]
+  stacks:
+    primary: [Go, PostgreSQL, Kubernetes]
+    secondary: [Python, Kafka]
+    avoid: [PHP]
+  search_keywords: [backend, golang, distributed systems]
+  exclude_keywords: [intern, junior]
+  avoid_company_types: [staffing agency]
+
+locations:
+  accepted:
+    - { place: remote, modes: [remote] }
+    - { place: Berlin, modes: [hybrid, onsite], relocation: open }
+  reject_other_onsite: true
+
+compensation:
+  currency: EUR
+  period: year
+  floor_gross: 85000
+  floor_net: 55000
+  ask_gross: 100000
+  net_rule: generic_flat
+  employment_types: []
+  unlisted_salary_score: 50
+
+languages:
+  spoken:
+    - { language: English, level: C1 }
+    - { language: German, level: B1 }
+  fail_if_required_not_listed: true
+  flag_if_required_level_above: true
+
+work_authorization:
+  authorized_in: [EU]
+  needs_sponsorship_elsewhere: true
+
+scoring:
+  rubric_version: v2
+  weights: { technical: 0.30, experience: 0.20, culture: 0.10, career: 0.25, compensation: 0.15 }
+  thresholds: { strong: 75, good: 60, moderate: 45, weak: 30, apply_this_week_from: 68 }
+  technical_floor: 45
+  depth_risk_keywords: [concurrency internals, system design at scale]
+
+boards:
+  - { id: example_board, adapter: example_board_mcp, regions: [EU], max_results: 50 }
+
+followups:
+  first_after_days: 7
+  second_after_days: 14
+  max_followups: 2
+  referral_first: true
+
+tracker:
+  sheet: Pipeline
+
+cv_map:
+  mode: headings

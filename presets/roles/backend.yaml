@@ -1,0 +1,4 @@
+# Thin example role pack (expanded in step 7).
+targets:
+  search_keywords: [backend, api, distributed systems]
+  exclude_keywords: [intern, internship, junior]
