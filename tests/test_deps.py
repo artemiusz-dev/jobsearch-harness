@@ -78,3 +78,13 @@ def test_dev_setup_check_reports_state():
     assert r.returncode in (0, 1)
     for key in ("venv", "ruff", "hooks_path", "hooks_executable"):
         assert key in r.stdout
+
+
+def test_ensure_refuses_stdin_and_dash_c_scripts(monkeypatch):
+    monkeypatch.setattr(_deps, "MODULES", ("definitely_not_installed_pkg",))
+    monkeypatch.delenv(_deps.GUARD, raising=False)
+    for argv0 in ("-", "-c", ""):
+        monkeypatch.setattr(sys, "argv", [argv0])
+        with pytest.raises(SystemExit) as e:
+            _deps.ensure()
+        assert "stdin" in str(e.value)

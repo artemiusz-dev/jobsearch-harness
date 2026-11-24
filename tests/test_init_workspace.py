@@ -102,3 +102,16 @@ def test_profile_pins_rubric_version_in_raw_yaml(tmp_path):
     assert run(tmp_path, t).returncode == 0
     raw = yaml.safe_load((t / "profile.yaml").read_text(encoding="utf-8"))
     assert raw["scoring"]["rubric_version"] == "v2"
+
+
+def test_init_passes_stacks_depth_risk_and_rubric_hints(tmp_path):
+    import yaml
+    a = dict(ANSWERS, stacks={"primary": ["TypeScript", "Node.js"], "secondary": ["Go"], "avoid": ["PHP"]},
+             depth_risk_keywords=["event loop internals"], rubric_hints={"career": "Full-stack counts as on-target."})
+    t = tmp_path / "ws"
+    assert run(tmp_path, t, answers=a).returncode == 0
+    raw = yaml.safe_load((t / "profile.yaml").read_text(encoding="utf-8"))
+    assert raw["targets"]["stacks"]["primary"] == ["TypeScript", "Node.js"]
+    assert raw["scoring"]["depth_risk_keywords"] == ["event loop internals"]
+    merged = jp.load_profile(t)
+    assert merged["rubric_hints"]["career"] == "Full-stack counts as on-target."

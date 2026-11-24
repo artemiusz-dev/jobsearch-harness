@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -94,7 +95,11 @@ def gates(repo: Path) -> None:
     steps = []
     if ruff.exists():
         steps.append([str(ruff), "check", "scripts", "tests"])
-    steps += [[exe, "-m", "pytest", "-q"], [exe, "scripts/privacy_audit.py"]]
+    audit = [exe, "scripts/privacy_audit.py"]
+    deny = Path(os.environ.get("JOBSEARCH_DENYLIST", Path.home() / ".config" / "jobsearch-private" / "denylist.txt"))
+    if deny.is_file():
+        audit += ["--denylist", str(deny)]
+    steps += [[exe, "-m", "pytest", "-q"], audit]
     for cmd in steps:
         print("release: running", " ".join(Path(c).name if i == 0 else c for i, c in enumerate(cmd)))
         r = subprocess.run(cmd, cwd=repo)

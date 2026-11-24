@@ -18,7 +18,10 @@ answers.json (all values are the user's own; nothing is invented):
   "effective_deduction_rate": 0.3,       # only for the generic market
   "situation": {"available_from": "...", "reason_to_give_recruiters": "...", "search_priority": "...",
                 "relocation_messaging": "...", "notes": ["..."]},   # optional, see config/profile.schema.json
-  "reply_greeting": "Alex,"              # optional: every chat reply starts with this
+  "reply_greeting": "Alex,",             # optional: every chat reply starts with this
+  "stacks": {"primary": ["..."], "secondary": ["..."], "avoid": ["..."]},   # optional, overrides the role preset
+  "depth_risk_keywords": ["..."],        # optional: interview topics that past rejections came from
+  "rubric_hints": {"technical": "...", "career": "..."}   # optional: wording that overrides the role preset
 }
 
 Never overwrites: the target must not exist or must be empty. Writes only inside the target.
@@ -33,6 +36,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _deps  # noqa: E402
+from _tools import find_soffice  # noqa: E402
 
 _deps.ensure()
 
@@ -89,6 +93,12 @@ def build_profile(a: dict, role: str, market: str) -> dict:
         prof["targets"]["roles"] = a["roles"]
     if a.get("seniority"):
         prof["targets"]["seniority"] = a["seniority"]
+    if a.get("stacks"):
+        prof["targets"]["stacks"] = a["stacks"]
+    if a.get("depth_risk_keywords"):
+        prof["scoring"]["depth_risk_keywords"] = a["depth_risk_keywords"]
+    if a.get("rubric_hints"):
+        prof["rubric_hints"] = a["rubric_hints"]
     if a.get("authorized_in"):
         prof["work_authorization"] = {"authorized_in": a["authorized_in"]}
     if a.get("situation"):
@@ -176,7 +186,7 @@ def init(target: Path, answers: dict, cv: Path | None, market: str, role: str) -
     except BaseException:
         _cleanup(target, created)
         raise
-    if shutil.which("soffice") is None:
+    if find_soffice() is None:
         notes.append("WARNING LibreOffice (soffice) not found: PDF builds will fail until it is installed")
     return notes
 

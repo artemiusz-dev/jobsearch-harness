@@ -54,6 +54,12 @@ def ensure() -> None:
     gone = missing()
     if not gone:
         return
+    if not sys.argv or sys.argv[0] in ("", "-", "-c"):
+        raise SystemExit(
+            f"Missing Python packages {gone}, and this code was started from stdin or -c, so it cannot be re-run "
+            f"inside the private venv. Save it to a file and run it with python3, or use {_venv_python(venv_dir())} "
+            f"(created by running any plugin script once)."
+        )
     if os.environ.get(GUARD):
         raise SystemExit(
             f"Missing Python packages {gone} even inside {venv_dir()}. "

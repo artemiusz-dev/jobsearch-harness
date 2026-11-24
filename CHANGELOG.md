@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-11-25
+- `tracker_add.py add|update`: the only way skills change tracker rows. Backs up first (never overwriting a backup, including two in one second; `restyle_tracker.py` had the same flaw and is fixed), validates status and dates, refuses the same company and role (fuzzy match, exit 2), asks when an update matches no or several rows, then restyles. Skills and the workspace `CLAUDE.md` route all tracker edits through it.
+- PDF builds: LibreOffice is found in the usual install locations (macOS app bundle, Homebrew, Windows, snap) or via `$SOFFICE`, not only on `PATH`. Entry headers are kept with their first bullet automatically, which fixed orphaned headers at a page break. Keyword coverage accepts plural/singular variants.
+- `cv-tailor`: exit 1 (too many pages, layout problem) is not done: shorten or extend `drop` and rebuild up to three times; a CV is presented only when it passes or the failing check is named.
+- `init-workspace` asks explicitly for primary/secondary/avoided stacks, depth-risk topics and rubric hints (the cause of mis-scored full-stack roles) and warns that thresholds are uncalibrated; `init_workspace.py` writes them.
+- `_deps.ensure()` explains itself when a script comes from stdin or `-c` instead of silently doing nothing.
+- `release.py` runs the privacy audit with your private denylist like the hooks do.
+
 ## 0.3.2 - 2026-11-24
 - Commit subjects must be `type(scope): subject` (scope required); the `commit-msg` hook rejects anything else (Merge, Revert, fixup! and squash! are exempt).
 - Every released version is tagged: new `scripts/release.py` (clean tree, main branch, CHANGELOG section, gates, `chore(release): vX.Y.Z` commit, annotated tag, optional push), `pre-push` blocks pushing `main` when the `plugin.json` version has no tag, CI checks a pushed `v*` tag against `plugin.json` and the changelog.
