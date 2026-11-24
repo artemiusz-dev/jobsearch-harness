@@ -121,7 +121,7 @@ def test_build_application_docx_only_runs_text_checks(workspace, tmp_path):
     (folder / "spec.json").write_text(_json.dumps(spec), encoding="utf-8")
     r = _run_script("build_application.py", str(folder), "--cv", "--verify", "--docx-only", "--workspace", str(workspace))
     assert r.returncode == 2, r.stdout + r.stderr          # built, but PDF and layout unchecked
-    assert "DOCX-only verification" in r.stdout
+    assert "DOCX-only verification" in r.stdout and "RESULT: built DOCX only" in r.stdout
     assert "covered: Go" in r.stdout and "MISSING: Kafka" in r.stdout
     assert list(folder.glob("*.docx")) and not list(folder.glob("*.pdf"))
 

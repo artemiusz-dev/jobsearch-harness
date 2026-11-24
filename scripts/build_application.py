@@ -60,4 +60,7 @@ if do_letter:
         r['ok'] = r['ok'] and ok
     status |= 0 if r['ok'] else 1
 # exit 0 = fully verified, 1 = a check failed, 2 = built DOCX only (PDF and layout unchecked)
-sys.exit(status or (2 if docx_only else 0))
+code = status or (2 if docx_only else 0)
+print({0: 'RESULT: built and verified (exit 0)', 1: 'RESULT: a check failed (exit 1)',
+       2: 'RESULT: built DOCX only; page fit and layout NOT checked (exit 2). Missing keywords above do not change the exit code.'}[code])
+sys.exit(code)
