@@ -54,3 +54,11 @@ Present the dimension table (with a brief note per row), the arithmetic line (`O
 
 - Keep a short changelog here when you change weights or thresholds (date, what changed, why). Old scores are NOT recomputed; compare scores across rubric versions with care.
 - Record the outcome per application by filling the tracker stage columns (Intro Call, Assignment, Tech Interview, Final Interview, Offer / Rejected) as events happen. After about 30 applications with outcomes, compare conversion by score band and re-tune weights and thresholds. `python3 <plugin>/scripts/tracker_query.py --workspace . bands` prints the funnel by Match % band (live and archives are reported separately and must not be compared directly across rubric versions).
+
+## Calibrating the thresholds
+
+The default weights and thresholds are not calibrated to your market. Two scripts show whether they should change:
+- `python3 <plugin>/scripts/tracker_query.py --workspace . calibrate` counts, per Match % band, the applications old enough to have had a reply (`--mature-days`, default 14) and how many got one, with a 95% interval. It ends with a plain verdict: bands with fewer than 30 applications are marked `*` and ignored, and thresholds are worth moving only when a higher band replies significantly more often than a lower one (intervals do not overlap). With overlapping intervals the score does not yet predict replies: keep the thresholds.
+- `python3 <plugin>/scripts/score_compare.py [--reference old-analysis.md] run1.md run2.md run3.md` summarizes several analyses of the same posting (overall and the five dimensions: mean, range, difference to a reference). One run is noisy by a few points; compare means before blaming the rubric or the profile.
+
+Record any change to weights or thresholds in the changelog above with the date and the numbers that justified it.

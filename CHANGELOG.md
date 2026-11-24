@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0 - 2026-11-25
+- `tracker_query.py calibrate`: reply rate per Match % band for applications old enough to have had a reply, with 95% Wilson intervals, bands under 30 applications marked and ignored, and a plain verdict on whether the score predicts replies (thresholds are only worth changing when it does).
+- New `scripts/score_compare.py`: mean, range and difference to a reference across repeated analyses of one posting, overall and per dimension.
+- `docs/scoring-rubric.md` explains how to read both and says when to change thresholds.
+
 ## 0.4.0 - 2026-11-25
 - `tracker_add.py add|update`: the only way skills change tracker rows. Backs up first (never overwriting a backup, including two in one second; `restyle_tracker.py` had the same flaw and is fixed), validates status and dates, refuses the same company and role (fuzzy match, exit 2), asks when an update matches no or several rows, then restyles. Skills and the workspace `CLAUDE.md` route all tracker edits through it.
 - PDF builds: LibreOffice is found in the usual install locations (macOS app bundle, Homebrew, Windows, snap) or via `$SOFFICE`, not only on `PATH`. Entry headers are kept with their first bullet automatically, which fixed orphaned headers at a page break. Keyword coverage accepts plural/singular variants.

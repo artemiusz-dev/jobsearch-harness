@@ -18,6 +18,7 @@ quiet  Open applications (APPLIED / CV SENT) with no reply for N days (default f
        and fewer than followups.max_followups logged follow-ups. Follow-ups are counted from the marker
        "followed up YYYY-MM-DD" in Next Action. Rows quiet for followups.stale_after_days or more are listed
        as stale-sweep candidates (propose only; the user confirms any status change).
+calibrate  Like bands, but only matured applications, with 95% intervals and a plain verdict on whether the score predicts replies.
 bands  Funnel by Match % band (reply / interview / offer rates). Band edges come from scoring.thresholds.
        Live and archive are reported separately because rubrics may differ between them.
 """
@@ -218,6 +219,31 @@ def cmd_bands(prof, a):
     return 0
 
 
+def cmd_calibrate(prof, a):
+    from lib import calibration as cal
+    band, labels = make_band(prof.band_edges)
+    roles = prof["tracker"]["status_roles"]
+    today = dt.date.today()
+    for label, rows in all_sources(prof):
+        stats, too_recent = cal.band_stats(rows, band, roles, today, a.mature_days, to_score, to_date)
+        tag = f"rubric {prof['scoring']['rubric_version']}" if label == "live" else "archive: rubric may differ"
+        print(f"\n{label} ({tag}) - applied at least {a.mature_days} days ago ({too_recent} newer applications left out)")
+        if not stats:
+            print("  (none)")
+            continue
+        print("  band    | applied | replied (95% interval) | interview | offer")
+        for k in labels:
+            if k in stats:
+                v = stats[k]
+                star = "*" if v["n"] < cal.MIN_N else " "
+                print(f"  {k:<7} | {v['n']:>6}{star} | {cal.fmt_rate(v['replied'], v['n']):<22} | {v['interview']:>9} | {v['offer']:>5}")
+        for line in cal.verdict(labels, stats):
+            print("  -> " + line)
+    print("\nA reply is an intro call or a status in tracker.status_roles.replied. Archives use another rubric: read them "
+          "separately. Thresholds live in profile.yaml (scoring.thresholds); change them only after the verdict says the bands separate.")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_workspace_arg(ap)
@@ -231,6 +257,9 @@ def main():
     q.set_defaults(fn=cmd_quiet)
     b = sub.add_parser("bands")
     b.set_defaults(fn=cmd_bands)
+    c = sub.add_parser("calibrate")
+    c.add_argument("--mature-days", type=int, default=14, help="ignore applications newer than this (a reply needs time)")
+    c.set_defaults(fn=cmd_calibrate)
     a = ap.parse_args()
     try:
         prof = load_profile(a.workspace)
