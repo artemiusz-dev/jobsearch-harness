@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 - 2026-11-24
+- Commit subjects must be `type(scope): subject` (scope required); the `commit-msg` hook rejects anything else (Merge, Revert, fixup! and squash! are exempt).
+- Every released version is tagged: new `scripts/release.py` (clean tree, main branch, CHANGELOG section, gates, `chore(release): vX.Y.Z` commit, annotated tag, optional push), `pre-push` blocks pushing `main` when the `plugin.json` version has no tag, CI checks a pushed `v*` tag against `plugin.json` and the changelog.
+- Missing tags for 0.1.0, 0.2.0 and 0.2.1 added retroactively.
+
 ## 0.3.1 - 2026-11-24
 - Developer hooks: `scripts/dev_setup.py` (venv, dependencies, ruff, `core.hooksPath` for the clone), a `commit-msg` hook (`scripts/check_commit_msg.py`: no home paths, real emails, phone numbers or denylist terms in commit messages; subject length), a `pre-push` hook (ruff, pytest, full privacy audit) and ruff on staged files in `pre-commit`.
 - `ruff.toml` and a clean `ruff check`; ruff runs in CI.

@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -10,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     # Pinned: ubuntu-latest is now 26.04, which has no Python 3.9 build for setup-python.
     runs-on: ubuntu-24.04
     strategy:
@@ -35,6 +37,7 @@ jobs:
         run: python scripts/privacy_audit.py
 
   secrets:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,3 +52,14 @@ jobs:
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | tar -xz -C "$RUNNER_TEMP" gitleaks
           "$RUNNER_TEMP/gitleaks" detect --redact -v --exit-code=2 --log-opts="--no-merges"
+
+  tag:
+    # A pushed v* tag must match plugin.json and have a CHANGELOG section.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/release.py --verify-tag "$GITHUB_REF_NAME"

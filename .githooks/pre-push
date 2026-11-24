@@ -6,6 +6,15 @@ cd "$(git rev-parse --show-toplevel)"
 PY=python3
 [ -x .venv/bin/python ] && PY=.venv/bin/python
 
+# Pushing main requires the plugin.json version to be tagged (scripts/release.py creates the tag).
+pushing_main=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ "$remote_ref" = "refs/heads/main" ] && pushing_main=1
+done
+if [ "$pushing_main" = "1" ]; then
+  "$PY" scripts/release.py --check-tag >&2 || { echo "pre-push: main cannot be pushed without a tag for the plugin.json version" >&2; exit 1; }
+fi
+
 DENYLIST="${JOBSEARCH_DENYLIST:-$HOME/.config/jobsearch-private/denylist.txt}"
 args=()
 [ -f "$DENYLIST" ] && args+=(--denylist "$DENYLIST")

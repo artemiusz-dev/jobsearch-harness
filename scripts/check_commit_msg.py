@@ -8,7 +8,9 @@ Hard failures (exit 1):
   - the message text contains a non-placeholder email, a phone-like number, an absolute home path
     (same patterns as scripts/privacy_audit.py), or a term from your private denylist
     (--denylist, $JOBSEARCH_DENYLIST, or ~/.config/jobsearch-private/denylist.txt when it exists)
-Soft notes (printed, exit 0): subject is not in the `type(scope): subject` form, or ends with a period.
+  - the subject is not `type(scope): subject`: type is one of TYPES, scope is required (lowercase letters,
+    digits, . _ / -), an optional `!` before the colon marks a breaking change
+Soft note (printed, exit 0): the subject ends with a period.
 Merge, Revert, fixup! and squash! subjects skip the style rules but not the privacy rules.
 Trailer lines (Co-Authored-By, Signed-off-by) are checked against the denylist only.
 """
@@ -24,7 +26,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import privacy_audit as pa  # noqa: E402
 
 MAX_SUBJECT = 72
-CONVENTIONAL = re.compile(r"^(feat|fix|docs|test|tests|chore|refactor|perf|build|ci|style|revert)(\([\w./-]+\))?!?: \S")
+TYPES = ("feat", "fix", "docs", "test", "chore", "refactor", "perf", "build", "ci", "revert")
+CONVENTIONAL = re.compile(r"^(" + "|".join(TYPES) + r")\(([a-z0-9][a-z0-9._/-]*)\)!?: \S")
 SKIP_STYLE = re.compile(r"^(Merge |Revert |fixup! |squash! )")
 TRAILER = re.compile(r"^(Co-Authored-By|Signed-off-by|Reviewed-by|Acked-by):", re.I)
 
@@ -49,7 +52,7 @@ def check(message: str, denylist: Path | None = None) -> tuple[list[str], list[s
         problems.append(f"subject is {len(subject)} characters (max {MAX_SUBJECT})")
     if not SKIP_STYLE.match(subject):
         if not CONVENTIONAL.match(subject):
-            notes.append("subject is not in the 'type(scope): subject' form (feat, fix, docs, test, chore, refactor ...)")
+            problems.append(f"subject must be 'type(scope): subject' with type in {', '.join(TYPES)} and a scope, e.g. 'fix(build): keep the DOCX'")
         if subject.endswith("."):
             notes.append("subject ends with a period")
     try:

@@ -20,8 +20,8 @@ python3 scripts/dev_setup.py          # --check reports the state without changi
 The hooks in `.githooks` are fail-closed:
 
 - `pre-commit`: privacy audit of what is staged (plus your private denylist if you keep one at `~/.config/jobsearch-private/denylist.txt` or `$JOBSEARCH_DENYLIST`; optional), noreply author email, `ruff` on the staged Python files.
-- `commit-msg`: no home paths, real emails, phone numbers or denylist terms in the message; subject at most 72 characters; a note when it is not in the `type(scope): subject` form.
-- `pre-push`: `ruff`, the full test suite and the full-history privacy audit, the same gates as CI.
+- `commit-msg`: subject must be `type(scope): subject` (types `feat fix docs test chore refactor perf build ci revert`, scope required, `!` marks a breaking change; Merge, Revert, fixup! and squash! are exempt), at most 72 characters; no home paths, real emails, phone numbers or denylist terms in the message.
+- `pre-push`: `ruff`, the full test suite and the full-history privacy audit, the same gates as CI; pushing `main` is blocked unless the `plugin.json` version has a `v<version>` tag.
 
 ```bash
 .venv/bin/python -m pytest
@@ -29,6 +29,19 @@ The hooks in `.githooks` are fail-closed:
 ```
 
 LibreOffice is optional; PDF-building tests are skipped without it.
+
+## Commits and releases
+
+Commit subjects read `type(scope): subject`. Common scopes: `build`, `hooks`, `skills`, `presets`, `profile`, `tracker`, `cv`, `dm`, `docs`, `ci`, `deps`, `release`. Example: `fix(build): keep the DOCX when soffice is missing`.
+
+Every released version is tagged. Write the `## X.Y.Z - YYYY-MM-DD` section in `CHANGELOG.md` with the work, commit it, then run:
+
+```bash
+python3 scripts/release.py --bump patch      # or minor / major, or an explicit X.Y.Z
+git push origin main && git push origin vX.Y.Z   # or add --push
+```
+
+`release.py` checks the tree, branch and changelog, runs the gates, writes the version into `.claude-plugin/plugin.json`, commits `chore(release): vX.Y.Z` and creates the annotated tag. CI verifies that a pushed tag matches `plugin.json` and the changelog.
 
 ## Before you open a PR
 
