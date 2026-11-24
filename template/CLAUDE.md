@@ -93,6 +93,7 @@ Cold applications through job boards convert far worse than referrals, and many 
 ## Formatting Rules
 
 - **Dashes:** use a short dash `-` instead of an em dash in all generated text and documents (`style.forbid_em_dash` in the profile; the CV builder enforces it).
+- **Chat greeting:** if `style.reply_greeting` is set in the profile, start every chat reply to the user with exactly that text. It applies to replies in this conversation only; never put it in a CV, letter, recruiter message or any other generated document.
 - **Cover letters:** never generate unless the user explicitly requests one. Do not offer proactively after a JD analysis or CV tailoring.
 
 ---

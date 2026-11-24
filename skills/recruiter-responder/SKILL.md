@@ -114,6 +114,35 @@ Reply in the language the recruiter used, if the user is comfortable in it (chec
 
 **Draft Response**: clean and copy-paste ready. No markdown; plain text that works on LinkedIn, email or any channel.
 
+## Outbound LinkedIn DMs (outreach you start)
+
+Use this section when the user asks for a cold message or outreach to a recruiter, hiring manager or warm contact (including the warm-intro message from the Referral-First rule). It does not apply to replies to inbound messages above.
+
+**Length: 2-3 sentences, hard cap.** Long messages signal low confidence and read as AI-generated. Short ones get read.
+
+**Structure (three sentences at most):**
+1. **Context hook:** why this specific person (shared employer, they follow the user's content, their profile says they are hiring).
+2. **Pitch in one sentence:** years, stack, location, availability. Facts from the profile and knowledge base only.
+3. **One direct question:** a specific opening, not "let's connect".
+
+**Banned in DMs** (on top of the humanize rule):
+- "Happy to share my CV" in any form: drop it entirely.
+- "Would be glad to connect" and similar weak closers.
+- "which I appreciate" (sycophantic).
+- "actively exploring new opportunities" (HR cliche; Rule 1 is for replies to inbound messages, not cold DMs).
+- "wanted to reach out directly" (redundant, you are already messaging).
+- CV-pasted claims such as "track record in large-scale architecture".
+- Meta-commentary such as "I figure a direct message makes more sense than a cold application".
+- Hedging such as "I'm happy to hear the details first".
+- The same closer ("worth discussing?") across several messages: vary the close.
+
+**Good endings** are one direct question or fact:
+- "Any Frontend openings at [Company]?"
+- "Any Senior Frontend or Tech Lead positions open?"
+- Requirements as facts, not negotiation: "Employment contract required." not "I'd prefer an employment contract, but happy to discuss."
+
+When drafting several DMs at once, check that no two share the same opening or closing line.
+
 ## Post-Completion Workflow
 
 - If a company and role are identifiable and the user is interested, suggest adding it to the tracker with an appropriate status (back up first, per the immutability rule).

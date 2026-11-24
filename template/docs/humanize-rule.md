@@ -32,6 +32,7 @@ Add your own entries (other languages, phrases you personally never use) at the 
 - **First-person yes, self-promotion prose no.** Concrete achievements over adjectives: "I led a migration of a 200k-line codebase" beats "I am experienced in large-scale projects".
 - **One idea per sentence.**
 - **No sign-off platitudes.** End letters and messages with a direct, specific statement, not "I look forward to hearing from you at your earliest convenience".
+- **LinkedIn DMs you start:** 2-3 sentences, one direct question; the full rules and banned closers are in the `recruiter-responder` skill (Outbound LinkedIn DMs).
 - **Recruiter messages:** conversational, short sentences, no corporate tone; sound like a senior professional who knows their worth, not a job seeker performing enthusiasm.
 
 ## Tone calibration per document type

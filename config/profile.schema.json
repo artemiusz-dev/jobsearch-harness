@@ -306,7 +306,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "forbid_em_dash": { "type": "boolean", "default": true, "description": "Reject em dashes in generated CV/letter text." }
+        "forbid_em_dash": { "type": "boolean", "default": true, "description": "Reject em dashes in generated CV/letter text." },
+        "reply_greeting": { "type": "string", "maxLength": 80, "description": "Optional. Text the assistant starts every chat reply with (for example a first name and a comma). Chat replies only; never put it in a CV, letter or outbound message." }
       }
     }
   }

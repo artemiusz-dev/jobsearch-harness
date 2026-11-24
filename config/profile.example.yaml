@@ -79,6 +79,10 @@ followups:
 tracker:
   sheet: Pipeline
 
+style:
+  forbid_em_dash: true
+  reply_greeting: "Alex,"   # optional: every chat reply starts with this (chat only, never in documents)
+
 cv_map:
   summary_heading: PROFESSIONAL SUMMARY
   skills_heading: SKILLS
