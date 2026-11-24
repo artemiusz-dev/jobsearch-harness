@@ -16,7 +16,7 @@ All user-specific facts come from the workspace, never from this skill:
 - The knowledge base (`paths.knowledge_base`) for skills, gaps and languages.
 - The tracker (`paths.tracker`).
 
-In the rest of this skill, `$P` means a field of `profile.yaml`.
+In the rest of this skill, `$P` means a field of `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## Workflow Overview
 

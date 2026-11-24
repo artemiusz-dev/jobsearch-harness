@@ -260,10 +260,14 @@ if __name__ == "__main__":
     import argparse
     import sys
     ap = argparse.ArgumentParser(description="Validate and print the merged profile.")
+    ap.add_argument("--json", action="store_true", help="print the merged profile (presets + profile.yaml + defaults) as JSON")
     add_workspace_arg(ap)
     a = ap.parse_args()
     try:
         p = load_profile(a.workspace)
     except ProfileError as e:
         sys.exit(str(e))
+    if a.json:
+        print(json.dumps(p.data, indent=2, ensure_ascii=False))
+        sys.exit(0)
     print(f"OK: {p.workspace / PROFILE_NAME} valid ({p.currency}, salary column: {p.salary_column!r})")

@@ -78,3 +78,69 @@ def test_em_dash_rejected(workspace):
     import pytest
     with pytest.raises(SystemExit):
         cb._check_text(prof, "bad — dash")
+
+
+# ---- 0.3.0: DOCX-only builds, merged-profile JSON, DM checker, situation field
+import json as _json
+import subprocess as _sp
+import sys as _sys
+
+
+def _run_script(name, *args):
+    return _sp.run([_sys.executable, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "scripts" / name), *args],
+                   capture_output=True, text=True)
+
+
+def test_check_dm_flags_four_sentences_and_banned_phrases():
+    ok = _run_script("check_dm.py", "Hi Piotr, I saw your team's post. I'm a Krakow-based frontend engineer, free now. Is the team on Angular or React?")
+    assert ok.returncode == 0, ok.stdout
+    long = _run_script("check_dm.py", "Hi Maria, I follow your posts. I build frontends. I live in Krakow. I am free now. Any openings?")
+    assert long.returncode == 1 and "5 sentences" in long.stdout
+    banned = _run_script("check_dm.py", "Hi Sam, happy to share my CV. Any openings?")
+    assert banned.returncode == 1 and "banned phrase" in banned.stdout
+
+
+def test_check_dm_abbreviations_and_decimals_do_not_split():
+    r = _run_script("check_dm.py", "Hi Sam, I'm a Sr. engineer with 12.5 years, e.g. Angular. Any openings?")
+    assert r.returncode == 0, r.stdout
+
+
+def test_jobprofile_json_includes_preset_values(workspace):
+    r = _run_script("jobprofile.py", "--workspace", str(workspace), "--json")
+    assert r.returncode == 0, r.stderr
+    data = _json.loads(r.stdout)
+    assert data["scoring"]["rubric_version"] and "weights" in data["scoring"]
+    assert "avoid_company_types" in data["targets"]
+
+
+def test_build_application_docx_only_runs_text_checks(workspace, tmp_path):
+    folder = workspace / "acme-backend-2026-11-01"
+    folder.mkdir()
+    spec = {"cv": {"title": "Senior Backend Engineer", "summary": "Backend engineer building services in Go and Python.",
+                   "keywords": ["Go", "Kafka"]}}
+    (folder / "spec.json").write_text(_json.dumps(spec), encoding="utf-8")
+    r = _run_script("build_application.py", str(folder), "--cv", "--verify", "--docx-only", "--workspace", str(workspace))
+    assert r.returncode == 2, r.stdout + r.stderr          # built, but PDF and layout unchecked
+    assert "DOCX-only verification" in r.stdout
+    assert "covered: Go" in r.stdout and "MISSING: Kafka" in r.stdout
+    assert list(folder.glob("*.docx")) and not list(folder.glob("*.pdf"))
+
+
+def test_build_application_docx_only_rejects_em_dash(workspace):
+    folder = workspace / "acme-bad-2026-11-01"
+    folder.mkdir()
+    spec = {"cv": {"title": "Senior Backend Engineer", "summary": "Builds services " + chr(0x2014) + " fast."}}
+    (folder / "spec.json").write_text(_json.dumps(spec), encoding="utf-8")
+    r = _run_script("build_application.py", str(folder), "--cv", "--docx-only", "--workspace", str(workspace))
+    assert r.returncode != 0 and "Em dash" in (r.stdout + r.stderr)
+
+
+def test_init_workspace_passes_situation_and_greeting(tmp_path):
+    import yaml
+    from test_init_workspace import ANSWERS, run
+    a = dict(ANSWERS, situation={"available_from": "immediately", "reason_to_give_recruiters": "Project ended."},
+             reply_greeting="Alex,")
+    t = tmp_path / "ws"
+    assert run(tmp_path, t, answers=a).returncode == 0
+    raw = yaml.safe_load((t / "profile.yaml").read_text(encoding="utf-8"))
+    assert raw["situation"]["available_from"] == "immediately" and raw["style"]["reply_greeting"] == "Alex,"

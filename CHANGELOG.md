@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-11-24
+- `build_application.py` builds DOCX only when LibreOffice is missing (or with `--docx-only`), runs text checks on the DOCX (email, `must_contain`, em dash, keyword coverage) and exits 2 so callers know page fit and layout were not checked. Previously it crashed after writing the DOCX and skipped every check.
+- `jobprofile.py --json` prints the merged profile (presets included); all skills now read the merged profile instead of the raw `profile.yaml`, which missed preset values such as `avoid_company_types`.
+- New `scripts/check_dm.py`: mechanical check for outbound LinkedIn DMs (max 3 sentences after the greeting, banned phrases, em dash). `recruiter-responder` must run it instead of self-certifying the count; it also must not invent the topic of a context hook.
+- `jd-analyzer` and the rubric: ambiguous work-rights wording ("EU work permission required") is `Eligibility: FLAG, user decides`, never a quiet PASS.
+- New optional `situation` profile section (`available_from`, `reason_to_give_recruiters`, `search_priority`, `relocation_messaging`, `notes`), passed through by `init-workspace` together with `reply_greeting`, and described in the workspace `CLAUDE.md`.
+- `cv-tailor`: documents build exit codes; the summary opening must match the CV title's role family.
+
 ## 0.2.1 - 2026-11-24
 - Scripts now bootstrap their own dependencies (`scripts/_deps.py`): when PyYAML, openpyxl, python-docx, jsonschema or pypdf are missing, they are installed once into a private venv (`$CLAUDE_PLUGIN_DATA/venv` or `~/.cache/jobsearch-harness/venv`) and the command is re-run there. Plain `python3 <plugin>/scripts/...` now works with any Python.
 - `init-workspace` writes `scoring.rubric_version: v2` explicitly, so skills reading `profile.yaml` directly stamp the right rubric.

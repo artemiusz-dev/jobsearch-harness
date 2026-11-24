@@ -128,6 +128,20 @@ def to_pdf(docx_path, outdir, timeout=SOFFICE_TIMEOUT):
     return pdf
 
 
+def soffice_available():
+    return shutil.which('soffice') is not None
+
+
+def docx_text(path):
+    """All text in a .docx (paragraphs and table cells), whitespace-normalised."""
+    d = docx.Document(path)
+    parts = [p.text for p in d.paragraphs]
+    for t in d.tables:
+        for row in t.rows:
+            parts += [c.text for c in row.cells]
+    return re.sub(r'\s+', ' ', ' '.join(parts))
+
+
 def pages_of(pdf):
     return len(pypdf.PdfReader(pdf).pages)
 
@@ -279,7 +293,7 @@ def _apply_cv(prof, c, ndrop):
     return d, dropped
 
 
-def build_cv(prof, spec, out_dir, folder, force=False):
+def build_cv(prof, spec, out_dir, folder, force=False, docx_only=False):
     c = spec['cv']
     _check_text(prof, *_strings(c))
     name = _safe_name(c.get('file_name') or prof.output_stem(company_slug(folder), 'CV'))
@@ -288,6 +302,11 @@ def build_cv(prof, spec, out_dir, folder, force=False):
     guard_target(out, force)
     guard_target(out[:-5] + '.pdf', force)
     max_pages = c.get('max_pages', 2)
+    if docx_only:
+        d, dropped = _apply_cv(prof, c, 0)
+        d.save(out)
+        return dict(docx=out, pdf=None, pages=None, dropped=dropped, layout='layout: skipped (DOCX only)',
+                    layout_rc=LAYOUT_SKIPPED, ok=True, docx_only=True)
     for n in range(0, len(c.get('drop', [])) + 1):
         d, dropped = _apply_cv(prof, c, n)
         d.save(out)
@@ -320,7 +339,7 @@ def _para(d, align=None, after=0):
     return p
 
 
-def build_letter(prof, spec, out_dir, folder, force=False):
+def build_letter(prof, spec, out_dir, folder, force=False, docx_only=False):
     L = spec['letter']
     base = docx.Document(str(prof.path('base_cv'))).paragraphs
     mp = cv_map(prof, base)
@@ -356,6 +375,9 @@ def build_letter(prof, spec, out_dir, folder, force=False):
     guard_target(out, force)
     guard_target(out[:-5] + '.pdf', force)
     d.save(out)
+    if docx_only:
+        return dict(docx=out, pdf=None, pages=None, chars=len(body), layout='layout: skipped (DOCX only)',
+                    layout_rc=LAYOUT_SKIPPED, ok=True, docx_only=True)
     pdf = to_pdf(out, out_dir)
     pages = pages_of(pdf)
     rc, lay = layout_check(pdf)
@@ -363,8 +385,33 @@ def build_letter(prof, spec, out_dir, folder, force=False):
 
 
 # ---------------------------------------------------------------- verify
+def verify_docx(prof, kind, res, spec):
+    """Text-only checks for a DOCX-only build (no PDF): email, must_contain, em dash, keyword coverage.
+    Page count, ATS text layer and layout are NOT checked. Returns (ok, report)."""
+    sec = spec.get(kind, {})
+    txt = docx_text(res['docx'])
+    low = txt.lower()
+    rows, ok = [], True
+    for x in [prof['identity']['email']] + list(sec.get('must_contain', [])):
+        found = x.lower() in low
+        ok &= found
+        rows.append(f"  {'ok' if found else 'MISSING'}: contains {x!r}")
+    if prof['style']['forbid_em_dash'] and EM_DASH in txt:
+        ok = False
+        rows.append('  FAIL: em dash found in the document')
+    kws = sec.get('keywords', [])
+    if kws:
+        rows.append('keyword coverage:')
+        rows += [f"  {'covered' if k.lower() in low else 'MISSING'}: {k}" for k in kws]
+    head = ('DOCX-only verification (text checks only). NOT checked: page count, PDF text layer, layout. '
+            'Install LibreOffice (soffice) and rebuild with --force for the full check.')
+    return ok, head + '\n' + '\n'.join(rows)
+
+
 def verify(prof, kind, res, spec):
     """Run the mechanical PDF checks. Returns (ok, report)."""
+    if res.get('docx_only'):
+        return verify_docx(prof, kind, res, spec)
     pdf = res['pdf']
     contains = [prof['identity']['email']] + list(spec.get(kind, {}).get('must_contain', []))
     sec = spec.get(kind, {})

@@ -5,7 +5,7 @@ description: "Writes targeted cover letters (motivation letters) for specific jo
 
 # Cover Letter Writer
 
-Writes a concise, targeted cover letter for a specific application. Every sentence earns its place: no filler, no generic phrasing, no corporate cliches. The letter works for three audiences: the hiring manager skimming in 30 seconds, the AI screening tool scanning for keywords, and the recruiter deciding whether to forward it. `$P` means a field of the workspace's `profile.yaml`.
+Writes a concise, targeted cover letter for a specific application. Every sentence earns its place: no filler, no generic phrasing, no corporate cliches. The letter works for three audiences: the hiring manager skimming in 30 seconds, the AI screening tool scanning for keywords, and the recruiter deciding whether to forward it. `$P` means a field of the workspace's `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## Context
 

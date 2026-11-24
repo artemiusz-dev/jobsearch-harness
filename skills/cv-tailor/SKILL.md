@@ -5,7 +5,7 @@ description: "Tailors the user's base CV for a specific job description, optimiz
 
 # CV Tailor
 
-Tailors the user's base CV for a specific job description, optimizing for ATS parsing, AI screening and human reviewers, without fabricating anything. `$P` means a field of the workspace's `profile.yaml`.
+Tailors the user's base CV for a specific job description, optimizing for ATS parsing, AI screening and human reviewers, without fabricating anything. `$P` means a field of the workspace's `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## Authority
 
@@ -44,7 +44,7 @@ For every proposed change show all three pieces:
 
 Sections to evaluate:
 
-- **Professional Summary / Title** - align positioning with the role. Job titles must match real titles. If the JD title differs, consider noting both or adjusting language; truthful adjustments only.
+- **Professional Summary / Title** - align positioning with the role. The first words of the summary must name the same role family as the CV title line (a Frontend Engineer title is not followed by a summary that opens "Senior Software Engineer"). Job titles must match real titles. If the JD title differs, consider noting both or adjusting language; truthful adjustments only.
 - **Skills / Technologies** (mandatory) - this section must exist and appear right after the header/contact block, before Work Experience; AI parsers map it to scorecard criteria before reading job history. If the base CV lacks one, create it. Front-load the JD's priority technologies, add unlisted skills the user genuinely has (knowledge base skills section), de-emphasize irrelevant ones.
 - **Work Experience** - where most tailoring happens. For each relevant role: rewrite bullets to emphasize JD-matching achievements, weave in critical keywords, adjust emphasis, add quantified impact only with numbers that exist in the knowledge base or that the user supplies (if the knowledge base says NOT FOUND, never invent one; respect any internal-only tags). Use complete sentences, not fragments. Dates use explicit full-month format ("March 2021 - June 2023"), not "2021 - 2023".
 - **Education / Certifications** - usually minimal; highlight relevant coursework or certs if the JD prefers them.
@@ -78,7 +78,7 @@ The CV is built from a spec file, not from a per-company script. Per-company scr
 
 1. After the user approves Steps 1-4, write `<company-folder>/spec.json` (format: `docs/build-application.md`). Put the title, summary, skills lines, bullet `edits` and the `drop` order in it. Order `drop` by the CV Trimming Rule (relevance to this JD, uniqueness in the CV, cover-letter dependency), lowest value first. Put critical keywords in `keywords` (and any that must be present in `must_contain`). To see the base CV's paragraph indices: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/lib/cvbuild.py --map --workspace .`.
 2. List grey-zone bullets (posting terminology used for adjacent work, blended academic and industry claims) with "keep, soften, or drop?" before building. Every date, employer, title and number must trace to the knowledge base or the base CV (Factual Grounding Audit in `docs/cv-letter-quality.md`).
-3. Build and verify: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/build_application.py <folder> --cv --verify --workspace .`. It edits the untouched base CV, trims to the page limit with a clean layout, converts to PDF (needs LibreOffice), runs `verify_pdf.py` and `verify_layout.py`, and prints keyword coverage and cut paragraphs. A second role at the same company uses `--spec spec-<role>.json` with a different `file_name`.
+3. Build and verify: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/build_application.py <folder> --cv --verify --workspace .`. Exit codes: 0 = built and fully verified, 1 = a check failed, 2 = built as DOCX only because LibreOffice (`soffice`) is missing (page fit, PDF text layer and layout were NOT checked; only email, `must_contain`, em dash and keyword coverage were). On exit 2 still run the Draft Review Pass and report plainly that page fit is unverified; never install software, and tell the user to install LibreOffice and rebuild with `--force` for the full check. It edits the untouched base CV, trims to the page limit with a clean layout, converts to PDF (needs LibreOffice), runs `verify_pdf.py` and `verify_layout.py`, and prints keyword coverage and cut paragraphs. A second role at the same company uses `--spec spec-<role>.json` with a different `file_name`.
 4. Run the Draft Review Pass from `docs/cv-letter-quality.md` (fresh-context reviewer, one revision). Apply fixes by editing the spec and rebuilding with `--force`. The builder refuses to overwrite output on purpose: use `--force` only on a draft that has not been submitted, and rebuild submitted materials with `--out-dir`.
 5. Present one package for approval:
    - **Change Summary** - compact list of changes and key keywords added.

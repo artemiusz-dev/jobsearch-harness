@@ -15,7 +15,10 @@ answers.json (all values are the user's own; nothing is invented):
   "floor_gross": 20000, "floor_net": 14000, "ask_gross": 22000,   # floor_net / ask_gross optional
   "languages": [{"language": "English", "level": "C1"}],
   "authorized_in": ["..."],              # optional
-  "effective_deduction_rate": 0.3        # only for the generic market
+  "effective_deduction_rate": 0.3,       # only for the generic market
+  "situation": {"available_from": "...", "reason_to_give_recruiters": "...", "search_priority": "...",
+                "relocation_messaging": "...", "notes": ["..."]},   # optional, see config/profile.schema.json
+  "reply_greeting": "Alex,"              # optional: every chat reply starts with this
 }
 
 Never overwrites: the target must not exist or must be empty. Writes only inside the target.
@@ -88,6 +91,10 @@ def build_profile(a: dict, role: str, market: str) -> dict:
         prof["targets"]["seniority"] = a["seniority"]
     if a.get("authorized_in"):
         prof["work_authorization"] = {"authorized_in": a["authorized_in"]}
+    if a.get("situation"):
+        prof["situation"] = a["situation"]
+    if a.get("reply_greeting"):
+        prof["style"] = {"reply_greeting": a["reply_greeting"]}
     if a.get("effective_deduction_rate") is not None:
         prof["market_params"] = {"generic_flat": {"effective_deduction_rate": a["effective_deduction_rate"]}}
     return prof

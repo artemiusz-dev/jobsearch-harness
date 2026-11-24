@@ -79,6 +79,14 @@ followups:
 tracker:
   sheet: Pipeline
 
+situation:
+  available_from: immediately
+  reason_to_give_recruiters: "My previous fixed-term project has ended."
+  search_priority: "Fastest offer, then maximum compensation."
+  relocation_messaging: "I'm based in Berlin and can come to the office for onboarding. I'm open to relocating if the role requires it."
+  notes:
+    - "Only roles in Germany or fully remote in the EU."
+
 style:
   forbid_em_dash: true
   reply_greeting: "Alex,"   # optional: every chat reply starts with this (chat only, never in documents)

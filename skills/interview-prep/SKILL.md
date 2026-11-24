@@ -5,7 +5,7 @@ description: "Generates company-specific interview preparation packages with res
 
 # Interview Prep
 
-Generates a company-specific interview preparation package by combining web research, the user's STAR stories, the JD analysis and the knowledge base. `$P` means a field of the workspace's `profile.yaml`.
+Generates a company-specific interview preparation package by combining web research, the user's STAR stories, the JD analysis and the knowledge base. `$P` means a field of the workspace's `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## Context
 

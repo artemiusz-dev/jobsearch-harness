@@ -18,6 +18,12 @@ Project or NDA-sensitive notes carry tags: `[PUBLIC-SAFE]` may go in CVs and rec
 
 ---
 
+## Personal situation
+
+Standing facts about availability, search priority and relocation live in `profile.yaml` under `situation` (`available_from`, `reason_to_give_recruiters`, `search_priority`, `relocation_messaging`, `notes`), read through the merged profile (`jobprofile.py --json`). Use them in recruiter replies, letters and form answers: give the `reason_to_give_recruiters` line when asked why you are looking, phrase relocation with `relocation_messaging` (plain flexibility, not in a first "interested" reply unless the JD requires it), and honor every entry in `notes`. Never improvise a different reason or availability. If the field is empty, ask the user instead of guessing.
+
+---
+
 ## Contact Email Rule
 
 The contact email for all generated documents comes from `profile.yaml` (`identity.email`) and the base CV. Never use a different account's email (for example the email of the tool account running this assistant). When generating any document with contact info, read it from the base CV or the profile.

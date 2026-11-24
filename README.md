@@ -68,11 +68,12 @@ The scanner never calls a named board. Each `boards` entry in your profile names
 | Script | Purpose |
 |---|---|
 | `scripts/init_workspace.py` | Create a workspace from answers |
-| `scripts/jobprofile.py` | Load, merge and validate `profile.yaml` |
-| `scripts/build_application.py` | Build CV/letter PDFs from `spec.json` (+ verification) |
+| `scripts/jobprofile.py` | Load, merge and validate `profile.yaml` (`--json` prints the merged profile) |
+| `scripts/build_application.py` | Build CV/letter PDFs from `spec.json` (+ verification); DOCX-only with text checks when LibreOffice is missing |
 | `scripts/verify_pdf.py`, `verify_layout.py` | ATS text-layer and layout checks |
 | `scripts/tracker_query.py` | Fuzzy duplicate match, quiet follow-ups, conversion by score band |
 | `scripts/restyle_tracker.py` | Sort, style and back up the tracker |
+| `scripts/check_dm.py` | Check outbound LinkedIn DMs (sentence cap, banned phrases) |
 | `scripts/netcalc.py` | Net-pay estimates from the market pack |
 | `scripts/cleanup.py` | Dry-run-first removal of temp files |
 | `scripts/privacy_audit.py` | Pre-push audit for this repository |

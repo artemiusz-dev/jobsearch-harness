@@ -23,7 +23,8 @@ Creates the private workspace every other skill works in. The plugin repository 
 6. **Compensation:** currency (if the market does not set it), period (month, year, day), the internal **floor** (gross, and net if they have one) and the outward **ask**. Explain that the floor is internal and never quoted to recruiters. For the generic market also ask for their effective deduction rate (a fraction such as 0.30).
 7. **Languages:** each language with a CEFR level or `native`, stated honestly (the language gate uses these exactly).
 8. **Work authorization:** where they may work without sponsorship (optional).
-9. **Base CV:** path to their `.docx` CV (single column, with summary, skills and experience headings). Optional now; they can add it later.
+9. **Situation (optional):** earliest start date, the one truthful line to give recruiters about why they are looking, what the search optimizes for (for example fastest offer, maximum compensation), how to phrase relocation openness, and any standing rules or country limits. Stored under `situation` in `profile.yaml` and used in recruiter replies and letters. Also ask whether replies should start with a greeting (`reply_greeting`).
+10. **Base CV:** path to their `.docx` CV (single column, with summary, skills and experience headings). Optional now; they can add it later.
 
 Read the answers back as a short summary and get one confirmation before writing anything. Never fill in a number, level or fact the user did not give you.
 

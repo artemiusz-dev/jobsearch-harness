@@ -5,7 +5,7 @@ description: "Drafts professional responses to recruiter messages on LinkedIn, e
 
 # Recruiter Responder
 
-Assesses recruiter outreach and drafts an appropriate response: interested, need-more-info, or polite decline. `$P` means a field of the workspace's `profile.yaml`.
+Assesses recruiter outreach and drafts an appropriate response: interested, need-more-info, or polite decline. `$P` means a field of the workspace's `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## Context
 
@@ -118,7 +118,7 @@ Reply in the language the recruiter used, if the user is comfortable in it (chec
 
 Use this section when the user asks for a cold message or outreach to a recruiter, hiring manager or warm contact (including the warm-intro message from the Referral-First rule). It does not apply to replies to inbound messages above.
 
-**Length: 2-3 sentences, hard cap.** Long messages signal low confidence and read as AI-generated. Short ones get read.
+**Length: 2-3 sentences, hard cap, counted after the greeting.** Long messages signal low confidence and read as AI-generated. Short ones get read. A location or availability remark is not a fourth sentence: fold it into the pitch sentence. Never self-certify the count: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check_dm.py "<message>"` (or `--file` for several drafts separated by blank lines) and rewrite until it prints OK for every draft.
 
 **Structure (three sentences at most):**
 1. **Context hook:** why this specific person (shared employer, they follow the user's content, their profile says they are hiring).
@@ -141,7 +141,7 @@ Use this section when the user asks for a cold message or outreach to a recruite
 - "Any Senior Frontend or Tech Lead positions open?"
 - Requirements as facts, not negotiation: "Employment contract required." not "I'd prefer an employment contract, but happy to discuss."
 
-When drafting several DMs at once, check that no two share the same opening or closing line.
+When drafting several DMs at once, check that no two share the same opening or closing line. Do not invent a topic for the context hook beyond what the user told you (for example, do not add what their posts were about).
 
 ## Post-Completion Workflow
 

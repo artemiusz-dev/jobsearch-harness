@@ -5,7 +5,7 @@ description: "Extracts useful information from the current conversation and pers
 
 # Save Context
 
-Extract valuable information from the current conversation and persist it so future conversations start with better context. Without this, every conversation starts from scratch. `$P` means a field of the workspace's `profile.yaml`.
+Extract valuable information from the current conversation and persist it so future conversations start with better context. Without this, every conversation starts from scratch. `$P` means a field of the workspace's `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## What to extract
 

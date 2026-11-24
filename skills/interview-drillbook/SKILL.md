@@ -7,7 +7,7 @@ description: "Generates a comprehensive Q&A technical drill book for a specific 
 
 Generates a dense, self-contained Q&A study document for a specific interview: the document the user opens the night before. Not strategy but execution: real questions with full answers and code examples.
 
-This skill builds on the `interview-prep` output. If `interview-prep` has not run for this company, run it first (or read the JD analysis to infer the relevant areas). `$P` means a field of the workspace's `profile.yaml`.
+This skill builds on the `interview-prep` output. If `interview-prep` has not run for this company, run it first (or read the JD analysis to infer the relevant areas). `$P` means a field of the workspace's `profile.yaml`. Read it merged with the role and market presets, not as the raw file: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json` once and use that output (preset values such as `avoid_company_types` and `scoring.depth_risk_keywords` are not in the raw `profile.yaml`).
 
 ## Context
 

@@ -61,3 +61,8 @@ python3 <plugin>/scripts/build_application.py <company-folder> [--cv] [--letter]
 - `keep_with_next`: defaults to every paragraph starting with a prefix in `cv_map.keep_with_next_prefixes` (empty by default).
 - The letter's name and contact line come from the base CV; the signature uses `identity.full_name`; em dashes are rejected when `style.forbid_em_dash` is on.
 - An ASCII hyphen in date ranges is enforced by `--verify`.
+
+
+## Without LibreOffice
+
+If `soffice` is not installed, `build_application.py` writes the `.docx` only (or pass `--docx-only`), runs text checks on it (email, `must_contain`, em dash, keyword coverage) and exits with code 2. Page count, the PDF text layer and layout are not checked in that mode and `drop` trimming is not applied. Install LibreOffice and rebuild with `--force` for the full check. Exit codes: 0 verified, 1 a check failed, 2 built DOCX only.
