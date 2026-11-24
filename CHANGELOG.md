@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 - 2026-11-24
+- Scripts now bootstrap their own dependencies (`scripts/_deps.py`): when PyYAML, openpyxl, python-docx, jsonschema or pypdf are missing, they are installed once into a private venv (`$CLAUDE_PLUGIN_DATA/venv` or `~/.cache/jobsearch-harness/venv`) and the command is re-run there. Plain `python3 <plugin>/scripts/...` now works with any Python.
+- `init-workspace` writes `scoring.rubric_version: v2` explicitly, so skills reading `profile.yaml` directly stamp the right rubric.
+
 ## 0.2.0 - 2026-11-24
 - recruiter-responder: new "Outbound LinkedIn DMs" section (2-3 sentence cap, three-part structure, banned phrases, example closers); humanize rule links to it.
 - Optional `style.reply_greeting` profile field (schema, example, workspace `CLAUDE.md` rule) for chat replies.

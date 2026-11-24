@@ -14,11 +14,18 @@ import json
 import os
 import re
 import string
+import sys
 import unicodedata
 from pathlib import Path
 
-import yaml
-from jsonschema import Draft202012Validator, FormatChecker
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _deps  # noqa: E402
+
+_deps.ensure()
+
+import yaml  # noqa: E402
+from jsonschema import Draft202012Validator, FormatChecker  # noqa: E402
 
 PLUGIN_ROOT = Path(os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parent.parent)
 SCHEMA_PATH = PLUGIN_ROOT / "config" / "profile.schema.json"

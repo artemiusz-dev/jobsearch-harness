@@ -31,9 +31,12 @@ import re
 import sys
 from pathlib import Path
 
-import openpyxl
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _deps  # noqa: E402
+
+_deps.ensure()
+
+import openpyxl  # noqa: E402
 from jobprofile import ProfileError, add_workspace_arg, load_profile  # noqa: E402
 
 BASE_SUFFIXES = {

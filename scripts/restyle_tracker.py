@@ -22,7 +22,12 @@ import os
 import shutil
 import sys
 
-import openpyxl
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _deps  # noqa: E402
+
+_deps.ensure()
+
+import openpyxl  # noqa: E402
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 

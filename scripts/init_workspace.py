@@ -28,9 +28,12 @@ import shutil
 import sys
 from pathlib import Path
 
-import yaml
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _deps  # noqa: E402
+
+_deps.ensure()
+
+import yaml  # noqa: E402
 import jobprofile as jp  # noqa: E402
 
 PLUGIN = jp.PLUGIN_ROOT.resolve()
@@ -74,7 +77,7 @@ def build_profile(a: dict, role: str, market: str) -> dict:
         "locations": {"accepted": a["locations"]},
         "compensation": comp,
         "languages": {"spoken": a["languages"]},
-        "scoring": {"weights": DEFAULT_WEIGHTS, "thresholds": DEFAULT_THRESHOLDS},
+        "scoring": {"rubric_version": "v2", "weights": DEFAULT_WEIGHTS, "thresholds": DEFAULT_THRESHOLDS},
         "tracker": {"sheet": "Pipeline"},
     }
     if a.get("phone"):

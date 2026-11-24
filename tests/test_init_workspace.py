@@ -93,3 +93,12 @@ def test_no_personal_data_in_workspace_templates(tmp_path):
     run(tmp_path, t)
     claude = (t / "CLAUDE.md").read_text()
     assert "alex@example.com" not in claude          # personal facts live in profile.yaml only
+
+
+def test_profile_pins_rubric_version_in_raw_yaml(tmp_path):
+    """Skills may read profile.yaml directly; the rubric version must be written, not only defaulted."""
+    import yaml
+    t = tmp_path / "ws"
+    assert run(tmp_path, t).returncode == 0
+    raw = yaml.safe_load((t / "profile.yaml").read_text(encoding="utf-8"))
+    assert raw["scoring"]["rubric_version"] == "v2"

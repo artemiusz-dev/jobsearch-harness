@@ -16,8 +16,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-import docx
-import pypdf
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import _deps  # noqa: E402
+
+_deps.ensure()
+
+import docx  # noqa: E402
+import pypdf  # noqa: E402
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.shared import Mm, Pt, RGBColor
