@@ -18,6 +18,7 @@ quiet  Open applications (APPLIED / CV SENT) with no reply for N days (default f
        and fewer than followups.max_followups logged follow-ups. Follow-ups are counted from the marker
        "followed up YYYY-MM-DD" in Next Action. Rows quiet for followups.stale_after_days or more are listed
        as stale-sweep candidates (propose only; the user confirms any status change).
+summary  Rows per status, stage-column counts and the age of open applications (use this instead of reading the xlsx yourself).
 calibrate  Like bands, but only matured applications, with 95% intervals and a plain verdict on whether the score predicts replies.
 bands  Funnel by Match % band (reply / interview / offer rates). Band edges come from scoring.thresholds.
        Live and archive are reported separately because rubrics may differ between them.
@@ -219,6 +220,35 @@ def cmd_bands(prof, a):
     return 0
 
 
+def cmd_summary(prof, a):
+    """Pipeline health in one read: rows per status (in the profile's order) and how far applications got."""
+    path = prof.path("tracker")
+    if not path.exists():
+        print(f"No tracker at {path}")
+        return 1
+    rows = load(path, prof["tracker"]["sheet"])
+    order = [x["name"] for x in prof.statuses]
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[str(r.get("Status") or "(blank)")] = counts.get(str(r.get("Status") or "(blank)"), 0) + 1
+    print(f"Tracker: {len(rows)} rows ({path.name})")
+    for name in order + sorted(set(counts) - set(order)):
+        if name in counts:
+            print(f"  {name:<10} {counts[name]:>4}")
+    stages = ["Applied", "Intro Call", "Assignment", "Tech Interview", "Final Interview", "Offer / Rejected"]
+    reached = {st: sum(1 for r in rows if to_date(r.get(st)) is not None) for st in stages}
+    print("\nStage columns with a date: " + ", ".join(f"{st} {n}" for st, n in reached.items()))
+    roles = prof["tracker"]["status_roles"]
+    today = dt.date.today()
+    open_rows = [r for r in rows if r.get("Status") in roles["open_for_followup"]]
+    ages = sorted((today - d).days for r in open_rows if (d := to_date(r.get("Applied"))) is not None)
+    if ages:
+        print(f"Open applications ({'/'.join(roles['open_for_followup'])}): {len(open_rows)}; days since applied: "
+              f"median {ages[len(ages) // 2]}, oldest {ages[-1]}")
+    print("\nFor who needs a nudge: `quiet`. For whether the score predicts replies: `calibrate`.")
+    return 0
+
+
 def cmd_calibrate(prof, a):
     from lib import calibration as cal
     band, labels = make_band(prof.band_edges)
@@ -257,6 +287,8 @@ def main():
     q.set_defaults(fn=cmd_quiet)
     b = sub.add_parser("bands")
     b.set_defaults(fn=cmd_bands)
+    sm = sub.add_parser("summary")
+    sm.set_defaults(fn=cmd_summary)
     c = sub.add_parser("calibrate")
     c.add_argument("--mature-days", type=int, default=14, help="ignore applications newer than this (a reply needs time)")
     c.set_defaults(fn=cmd_calibrate)

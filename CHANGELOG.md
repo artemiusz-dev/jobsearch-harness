@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 - 2026-11-25
+- `tracker_query.py summary`: rows per status, stage-column counts and the age of open applications in one call. `followup-tracker` uses it (and `quiet`) instead of reading the xlsx with its own `openpyxl` snippet, which failed on machines without the package.
+- `job-scanner`: a board that returns zero results is retried once with a looser query before it is reported as "no data" (a stacked filter on justjoinit matched nothing).
+- `interview-drillbook` runs the material-reviewer checks itself and reports critical findings, since drill books copy knowledge-base answers that can contain unsupported claims.
+
 ## 0.5.0 - 2026-11-25
 - `tracker_query.py calibrate`: reply rate per Match % band for applications old enough to have had a reply, with 95% Wilson intervals, bands under 30 applications marked and ignored, and a plain verdict on whether the score predicts replies (thresholds are only worth changing when it does).
 - New `scripts/score_compare.py`: mean, range and difference to a reference across repeated analyses of one posting, overall and per dimension.

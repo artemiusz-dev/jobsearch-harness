@@ -143,7 +143,8 @@ Maps to: [requirements from this JD]
 
 1. Save as `<company-folder>/interview-drillbook.md`.
 2. No tracker status change is needed: the drillbook is prep support.
-3. Tell the user the file is saved and highlight the top 2-3 sections most critical for this role. Suggest running `interview-material-reviewer` on it before studying.
+3. Run the `interview-material-reviewer` checks yourself on the saved drill book before presenting it (read-only; save the report next to it). Drill books copy answers from the interview knowledge bases, and those can contain claims the knowledge base does not support, so list the critical findings in your summary instead of leaving the review to the user.
+4. Tell the user the file and the review report are saved, highlight the top 2-3 sections most critical for this role, and name the critical review findings.
 
 ## Important Principles
 

@@ -56,6 +56,8 @@ Build the queries from the profile, not from memory:
 
 Translate these into each board's own filter vocabulary using the adapter docs. User overrides (extra keywords, location, salary floor, date range, boards to skip) win over defaults.
 
+**Zero results is a signal to loosen, not to report "no jobs".** Stacked filters (several skills plus category plus seniority plus location) often match nothing on a board. When a board returns zero, retry once per board with the loosest query that still matches the intent (one keyword from `search_keywords`, no skill or category filters, location only), and filter the results yourself against the profile. Report a board as "no data" only if that retry is empty too, and say which queries you tried.
+
 ---
 
 ## Step 3: Deduplicate
@@ -162,7 +164,7 @@ Cold applications convert far worse than referrals. For each Apply / Apply-with-
 
 ## Error Handling
 
-- If a board fails or times out, skip it, continue, and list skipped boards in the summary.
+- If a board fails or times out, skip it, continue, and list skipped boards in the summary. A board that answers with zero results is retried once with a looser query (Step 2) before it is reported as "no data".
 - If a detail fetch fails, say "partial data".
 - If fewer than 3 roles survive filtering, suggest broadening (keywords, location, seniority).
 

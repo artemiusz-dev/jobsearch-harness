@@ -181,3 +181,11 @@ def test_restyle_backups_never_overwrite_each_other(workspace):
     for _ in range(3):
         assert sp.run([_s.executable, script, "--workspace", str(workspace)], capture_output=True, text=True).returncode == 0
     assert len(list((workspace / "_backup").glob("applications-tracker_*.xlsx"))) == 3
+
+
+def test_tracker_summary_counts_statuses_and_stages(workspace):
+    r = subprocess.run([sys.executable, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "scripts" / "tracker_query.py"),
+                        "--workspace", str(workspace), "summary"], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert "Tracker: 4 rows" in r.stdout and "APPLIED" in r.stdout and "OFFER" in r.stdout
+    assert "Stage columns with a date" in r.stdout and "Open applications" in r.stdout

@@ -15,7 +15,7 @@ For a quick mechanical pass, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_
 
 ## When Triggered
 
-1. Read the tracker for the current pipeline state.
+1. Read the tracker for the current pipeline state with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_query.py --workspace . summary` (rows per status, stage counts, age of open applications) and `... quiet` for the candidates. Never read the xlsx with your own `openpyxl` snippet: the system Python usually lacks it and the plugin scripts install what they need.
 2. Compute days since last activity for each active application.
 3. Classify each by urgency.
 4. Draft follow-ups for overdue items.
