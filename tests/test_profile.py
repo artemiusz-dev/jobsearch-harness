@@ -1,7 +1,6 @@
+import jobprofile as jp
 import pytest
 import yaml
-
-import jobprofile as jp
 
 
 def test_example_loads_with_presets_and_defaults(workspace):

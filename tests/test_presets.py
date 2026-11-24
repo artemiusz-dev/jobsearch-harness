@@ -2,10 +2,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+import jobprofile as jp
 import pytest
 import yaml
-
-import jobprofile as jp
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"

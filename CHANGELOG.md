@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - 2026-11-24
+- Developer hooks: `scripts/dev_setup.py` (venv, dependencies, ruff, `core.hooksPath` for the clone), a `commit-msg` hook (`scripts/check_commit_msg.py`: no home paths, real emails, phone numbers or denylist terms in commit messages; subject length), a `pre-push` hook (ruff, pytest, full privacy audit) and ruff on staged files in `pre-commit`.
+- `ruff.toml` and a clean `ruff check`; ruff runs in CI.
+- Tests that keep `_deps.MODULES` in step with `requirements.txt`.
+
 ## 0.3.0 - 2026-11-24
 - `build_application.py` builds DOCX only when LibreOffice is missing (or with `--docx-only`), runs text checks on the DOCX (email, `must_contain`, em dash, keyword coverage) and exits 2 so callers know page fit and layout were not checked. Previously it crashed after writing the DOCX and skipped every check.
 - `jobprofile.py --json` prints the merged profile (presets included); all skills now read the merged profile instead of the raw `profile.yaml`, which missed preset values such as `avoid_company_types`.

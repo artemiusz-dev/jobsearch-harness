@@ -45,7 +45,7 @@ def _build_venv(venv: Path) -> Path:
         raise SystemExit(
             f"Could not set up dependencies automatically ({e}).\n"
             f"Install them manually: {sys.executable} -m pip install -r {REQUIREMENTS}"
-        )
+        ) from e
     return py
 
 

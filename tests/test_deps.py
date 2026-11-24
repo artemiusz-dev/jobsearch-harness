@@ -3,9 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 import _deps
+import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 
@@ -46,3 +45,36 @@ def test_entry_scripts_run_with_help(script):
     r = subprocess.run([sys.executable, str(SCRIPTS / script), "--help"], capture_output=True, text=True,
                        env={**os.environ, _deps.GUARD: "1"})
     assert r.returncode == 0, r.stderr
+
+
+MODULE_TO_PACKAGE = {"yaml": "pyyaml", "jsonschema": "jsonschema", "openpyxl": "openpyxl", "docx": "python-docx", "pypdf": "pypdf"}
+DEV_ONLY = {"pytest"}
+
+
+def _requirement_names(path):
+    import re
+    names = set()
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith(("#", "-")):
+            names.add(re.split(r"[<>=!~\[; ]", line, maxsplit=1)[0].lower())
+    return names
+
+
+def test_bootstrap_modules_match_requirements():
+    """_deps.ensure() must check exactly the runtime packages in requirements.txt (pytest is dev-only)."""
+    req = _requirement_names(SCRIPTS.parent / "requirements.txt") - DEV_ONLY
+    assert set(_deps.MODULES) == set(MODULE_TO_PACKAGE), "update MODULE_TO_PACKAGE in this test with _deps.MODULES"
+    assert {MODULE_TO_PACKAGE[m] for m in _deps.MODULES} == req
+
+
+def test_dev_requirements_include_runtime_and_ruff():
+    text = (SCRIPTS.parent / "requirements-dev.txt").read_text(encoding="utf-8")
+    assert "-r requirements.txt" in text and "ruff" in text
+
+
+def test_dev_setup_check_reports_state():
+    r = subprocess.run([sys.executable, str(SCRIPTS / "dev_setup.py"), "--check"], capture_output=True, text=True)
+    assert r.returncode in (0, 1)
+    for key in ("venv", "ruff", "hooks_path", "hooks_executable"):
+        assert key in r.stdout

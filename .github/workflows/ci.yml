@@ -25,7 +25,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check scripts tests
       - name: Install LibreOffice and Poppler (enables the PDF build and layout checks)
         if: matrix.python-version == '3.12'
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-writer poppler-utils

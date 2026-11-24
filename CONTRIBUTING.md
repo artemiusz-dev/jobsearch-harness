@@ -11,22 +11,28 @@ Thanks for helping. This project has one hard rule: **no personal data in this r
 
 ## Setup
 
-Enable the privacy hook once per clone (it runs `scripts/privacy_audit.py` on what you stage, plus your private denylist if you keep one at `~/.config/jobsearch-private/denylist.txt` or `$JOBSEARCH_DENYLIST`; the denylist is optional):
+One command per clone (creates `.venv`, installs the dependencies and ruff, and enables the git hooks for this clone only):
 
 ```bash
-git config core.hooksPath .githooks
+python3 scripts/dev_setup.py          # --check reports the state without changing anything
 ```
 
+The hooks in `.githooks` are fail-closed:
+
+- `pre-commit`: privacy audit of what is staged (plus your private denylist if you keep one at `~/.config/jobsearch-private/denylist.txt` or `$JOBSEARCH_DENYLIST`; optional), noreply author email, `ruff` on the staged Python files.
+- `commit-msg`: no home paths, real emails, phone numbers or denylist terms in the message; subject at most 72 characters; a note when it is not in the `type(scope): subject` form.
+- `pre-push`: `ruff`, the full test suite and the full-history privacy audit, the same gates as CI.
+
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest
+.venv/bin/ruff check scripts tests
 ```
 
 LibreOffice is optional; PDF-building tests are skipped without it.
 
 ## Before you open a PR
 
-1. Tests pass: `.venv/bin/python -m pytest`.
+1. Tests and lint pass: `.venv/bin/python -m pytest` and `.venv/bin/ruff check scripts tests` (the `pre-push` hook runs both).
 2. Privacy audit passes: `.venv/bin/python scripts/privacy_audit.py`. If you keep a personal denylist, run it with `--denylist <file outside the repo>`; never add that file here.
 3. New behavior has a test; new profile fields are in `config/profile.schema.json` with a default where one makes sense, and described in the README or the relevant doc.
 4. Use a short dash `-` in generated-text rules and docs, not an em dash.

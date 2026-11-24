@@ -3,9 +3,8 @@ import sys
 from pathlib import Path
 
 import docx
-import openpyxl
-
 import jobprofile as jp
+import openpyxl
 from lib import cvbuild as cb
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"

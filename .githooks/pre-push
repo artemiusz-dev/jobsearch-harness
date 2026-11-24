@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Runs the same gates as CI before anything leaves the machine: lint, tests and the full-history privacy audit.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+PY=python3
+[ -x .venv/bin/python ] && PY=.venv/bin/python
+
+DENYLIST="${JOBSEARCH_DENYLIST:-$HOME/.config/jobsearch-private/denylist.txt}"
+args=()
+[ -f "$DENYLIST" ] && args+=(--denylist "$DENYLIST")
+
+if [ -x .venv/bin/ruff ]; then .venv/bin/ruff check scripts tests >&2
+elif command -v ruff >/dev/null 2>&1; then ruff check scripts tests >&2
+else echo "pre-push: ruff not found, skipping lint (run python3 scripts/dev_setup.py)" >&2; fi
+
+"$PY" -m pytest -q >&2 || { echo "pre-push: tests failed (install dependencies with python3 scripts/dev_setup.py)" >&2; exit 1; }
+"$PY" scripts/privacy_audit.py "${args[@]+"${args[@]}"}" >&2

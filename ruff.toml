@@ -1,0 +1,18 @@
+# Lint config for the pre-commit hook and CI. Keep it small: correctness first, import order, bugbear.
+line-length = 130
+target-version = "py39"
+extend-exclude = [".venv", ".ruff_cache", ".pytest_cache"]
+
+[lint]
+select = ["E4", "E7", "E9", "F", "W", "I", "B"]
+ignore = ["B008"]
+
+[lint.per-file-ignores]
+# Entry scripts put the scripts folder on sys.path and call _deps.ensure() BEFORE importing third-party
+# packages, so import order and position are deliberate there.
+"scripts/*" = ["E402", "I001"]
+"scripts/lib/*" = ["E402", "I001"]
+# verify_layout.py uses short geometry names (l, r, t, b).
+"scripts/verify_layout.py" = ["E741"]
+# Tests set sys.path first (conftest) and import helpers lazily.
+"tests/*" = ["E402", "B011"]

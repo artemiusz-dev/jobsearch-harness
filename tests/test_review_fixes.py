@@ -7,14 +7,13 @@ import sys
 from pathlib import Path
 
 import docx
+import jobprofile as jp
 import openpyxl
 import pytest
 import yaml
-from openpyxl.comments import Comment
-
-import jobprofile as jp
 from conftest import make_base_cv
 from lib import cvbuild as cb
+from openpyxl.comments import Comment
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 PYTHON = sys.executable
@@ -513,7 +512,8 @@ def test_restyle_needs_only_the_columns_it_uses(workspace):
 
 
 def test_audit_survives_unreadable_index_entries_and_ignores_binary_noise(tmp_path):
-    from test_privacy_audit import commit, make_repo, run as audit_run, sh
+    from test_privacy_audit import commit, make_repo, sh
+    from test_privacy_audit import run as audit_run
     r = make_repo(tmp_path)
     commit(r, "a.md", "clean\n")
     (r / "icon.bin").write_bytes(b"\x89PNG\x00\x01" + b"mail jane" + b"@realmail.net 555-" + b"123-4567" + b"\xff\xfe")

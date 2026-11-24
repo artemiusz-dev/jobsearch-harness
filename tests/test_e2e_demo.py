@@ -7,10 +7,9 @@ import sys
 from pathlib import Path
 
 import docx
+import jobprofile as jp
 import openpyxl
 import pytest
-
-import jobprofile as jp
 from lib import cvbuild as cb
 
 HERE = Path(__file__).resolve().parent

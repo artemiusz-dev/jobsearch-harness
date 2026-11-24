@@ -43,7 +43,9 @@ def poland_jdg(revenue: float, p: dict, annual_revenue: float | None = None) -> 
 def poland_uop_reference(gross: float, p: dict) -> str:
     kup = p["uop_reference_points_gross_to_net_with_50pct_kup"]
     nokup = p["uop_reference_points_gross_to_net_without_kup"]
-    fmt = lambda pts: ", ".join(f"{x['gross']:,.0f} -> ~{x['net']:,.0f}" for x in pts)
+    def fmt(pts):
+        return ", ".join(f"{x['gross']:,.0f} -> ~{x['net']:,.0f}" for x in pts)
+
     return ("UoP net depends on KUP, contributions and the annual tax threshold: use an official calculator.\n"
             f"  reference points with 50% KUP: {fmt(kup)}\n  without KUP: {fmt(nokup)}\n  you asked about gross {gross:,.0f}")
 
