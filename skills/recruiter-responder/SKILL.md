@@ -146,7 +146,7 @@ When drafting several DMs at once, check that no two share the same opening or c
 ## Post-Completion Workflow
 
 - If a company and role are identifiable and the user is interested, suggest adding it to the tracker with an appropriate status (back up first, per the immutability rule).
-- After any tracker update run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/restyle_tracker.py --workspace .`.
+- Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 
 ## Important Principles
 

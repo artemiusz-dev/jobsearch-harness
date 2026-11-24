@@ -71,7 +71,7 @@ Applies to every skill and subagent that reads a posting, recruiter message, agg
 ## Applications Tracker (summary - full: `docs/tracker-schema.md`)
 
 - Sheet `Pipeline`. Columns, valid statuses, sort order and styling are in `docs/tracker-schema.md` and can be overridden in `profile.yaml` (`tracker`).
-- After any data change run `python3 <plugin>/scripts/restyle_tracker.py --workspace .` (restyles, sorts, backs up).
+- Change rows only with `python3 <plugin>/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check, restyle; exit code 2 means ask the user). Never edit the xlsx directly. `restyle_tracker.py --workspace .` re-sorts and re-styles after a manual rebuild.
 
 ---
 
@@ -130,7 +130,7 @@ Before making **any** change to the tracker (data updates, status changes, new r
 
 1. Copy the current file to `<backup_dir>/<tracker-name>_YYYY-MM-DD_HHMMSS.xlsx` **before** writing (`paths.backup_dir` in the profile).
 2. Never overwrite or delete backup files. Multiple timestamped versions coexist.
-3. `restyle_tracker.py` does this automatically. When modifying the tracker directly (openpyxl or any other way), back it up first.
+3. `tracker_add.py` and `restyle_tracker.py` do this automatically and never overwrite an existing backup. Do not modify the tracker any other way; if a rebuild needs openpyxl, back it up first.
 4. To revert: copy the desired backup over the tracker and re-run `restyle_tracker.py`.
 
 Submitted application materials are immutable too: the CV builder refuses to overwrite existing output unless `--force` is given.
@@ -150,7 +150,7 @@ Overrides the followup-tracker skill where they differ.
 - **Max follow-ups per application = `followups.max_followups`** (default two). After the last silent one, do not offer another; propose closing the row.
 - **Draft only, never send.** 60-120 words, in the channel of the original application, Humanize voice, direct address, one sentence restating interest in the specific role, one value reminder, one question about timeline. No "just checking in".
 - **No new claims.** Every statement comes from the CV and letter that were actually submitted.
-- **Log it:** once the user confirms they sent it, append `followed up YYYY-MM-DD` to the row's `Next Action` (back up first, then restyle). If they do not send it, log nothing.
+- **Log it:** once the user confirms they sent it, append `followed up YYYY-MM-DD` to the row's `Next Action` (`tracker_add.py update --append-next-action`). If they do not send it, log nothing.
 - **Stale sweep:** list the candidates and ask; never change a status without an answer (`all` / `select` / `skip`). Confirmed rows -> Status `WITHDRAWN`, Next Action `No response after N days (YYYY-MM-DD)`.
 
 ---
@@ -167,7 +167,7 @@ Read the file before running either.
 
 Read the matching part of `docs/workflows.md` before: analyzing a JD (includes the `tracker_query.py match` duplicate check), saving a JD analysis, tailoring a CV, writing a cover letter, marking an application submitted, handling a rejection, preparing for an interview, or rebuilding the tracker.
 Standing rules:
-- Any status change updates the tracker row (Status, stage date, Next Action, Updated), then run `restyle_tracker.py`.
+- Any status change updates the tracker row (Status, stage date, Next Action, Updated) with `python3 <plugin>/scripts/tracker_add.py --workspace . add|update ...`.
 - A prior SKIP / REJECTED / WITHDRAWN at the same company never auto-skips a new role: surface the history, then analyze on its own merits.
 - For every new position (scan table, JD analysis, CV tailoring, recruiter message) run `tracker_query.py match "<Company>"` and list every row at the same company whose `Applied` or `Updated` date falls in the last 60 days, any status. Show it in the scan table Notes and as a `Prior applications (60 days)` line in `analysis.md`; write "none" when there are none. Flag same-team repeats and possible duplicate requisitions.
 - Cover letters only when the user explicitly asks.

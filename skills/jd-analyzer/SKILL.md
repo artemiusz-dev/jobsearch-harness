@@ -112,8 +112,7 @@ One-sentence rationale, the Overall Score, and the dimension table with a note p
 ### 9. Post-Analysis Workflow
 1. Create the company folder using `$P.paths.output_dir_pattern` (lowercase kebab-case).
 2. Save the analysis as `analysis.md` there (it must contain the `**Overall Score: NN**` line) and the full posting text verbatim as `job-posting.md` (never a summary; if the text is unavailable, write nothing and say so).
-3. Add or update the tracker row (back up first, per the immutability rule): `To Apply` for Apply/Apply with caveats, `SKIP` for Skip; for Discuss add no row until the user decides. Populate Company, Role, Source, Match % (= Overall Score), Salary, Folder, Updated.
-4. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/restyle_tracker.py --workspace .`.
+3. Add or update the tracker row with `tracker_add.py add|update`: `To Apply` for Apply/Apply with caveats, `SKIP` for Skip; for Discuss add no row until the user decides. Populate Company, Role, Source, Match % (= Overall Score), Salary, Folder (`--company --role --source --match --salary --folder`). Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 5. Update pipeline notes if there are blockers or signals worth tracking.
 6. If the verdict is Apply or Apply with caveats, suggest CV tailoring next.
 

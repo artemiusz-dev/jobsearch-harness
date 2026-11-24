@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _deps  # noqa: E402
+from _tools import find_soffice  # noqa: E402
 
 _deps.ensure()
 
@@ -114,12 +115,12 @@ def to_pdf(docx_path, outdir, timeout=SOFFICE_TIMEOUT):
     pdf = os.path.join(outdir, os.path.basename(docx_path)[:-5] + '.pdf')
     if os.path.exists(pdf):
         os.remove(pdf)            # never mistake an earlier build for this one
-    cmd = ['soffice', f'-env:UserInstallation={Path(_profile_dir()).as_uri()}', '--headless',
+    cmd = [find_soffice() or 'soffice', f'-env:UserInstallation={Path(_profile_dir()).as_uri()}', '--headless',
            '--convert-to', 'pdf', '--outdir', outdir, docx_path]
     try:
         r = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError:
-        raise RuntimeError('LibreOffice `soffice` not found on PATH; install LibreOffice to build PDFs') from None
+        raise RuntimeError('LibreOffice `soffice` not found (checked $SOFFICE, PATH and the usual install folders); install LibreOffice to build PDFs') from None
     except subprocess.TimeoutExpired:
         raise RuntimeError(f'soffice did not finish within {timeout}s converting {docx_path}') from None
     if r.returncode != 0 or not os.path.exists(pdf):
@@ -129,7 +130,7 @@ def to_pdf(docx_path, outdir, timeout=SOFFICE_TIMEOUT):
 
 
 def soffice_available():
-    return shutil.which('soffice') is not None
+    return find_soffice() is not None
 
 
 def docx_text(path):
@@ -165,6 +166,11 @@ def guard_target(path, force):
 def _is_bold(p):
     runs = [r for r in p.runs if r.text.strip()]
     return bool(runs) and all(r.bold for r in runs)
+
+
+def _starts_bold(p):
+    runs = [r for r in p.runs if r.text.strip()]
+    return bool(runs) and bool(runs[0].bold)
 
 
 def _style_is_heading(p):
@@ -250,6 +256,29 @@ def describe_map(prof):
 
 
 # ---------------------------------------------------------------- CV
+def auto_keep_with_next(paragraphs, mp):
+    """Indices that should keep with the next paragraph so an experience entry's header block is never
+    split from its first bullet. An entry header is a paragraph that starts bold and contains a tab (role, then dates); its
+    block runs through the bold label line ending in ':' (for example 'Key Contributions:') when one follows
+    within five paragraphs, else just the next line. The experience heading keeps with the first header."""
+    out = set()
+    start = mp['experience_heading']
+    out.add(start)
+    n = len(paragraphs)
+    for i in range(start + 1, n):
+        t = paragraphs[i].text
+        if not (t.strip() and '\t' in t and _starts_bold(paragraphs[i])):
+            continue
+        end = i + 1
+        for j in range(i + 1, min(i + 6, n)):
+            tj = paragraphs[j].text.strip()
+            if tj.endswith(':') and _is_bold(paragraphs[j]):
+                end = j
+                break
+        out.update(range(i, min(end, n - 1) + 1))
+    return sorted(out)
+
+
 def _apply_cv(prof, c, ndrop):
     d = docx.Document(str(prof.path('base_cv')))
     P = d.paragraphs
@@ -282,7 +311,8 @@ def _apply_cv(prof, c, ndrop):
         else:
             raise SystemExit(f"edit p{e['p']}: need text | replace | append")
     prefixes = tuple(prof['cv_map'].get('keep_with_next_prefixes', []))
-    auto = [i for i, p in enumerate(P) if prefixes and p.text.strip().startswith(prefixes)]
+    auto = ([i for i, p in enumerate(P) if p.text.strip().startswith(prefixes)] if prefixes
+            else auto_keep_with_next(P, mp))
     for k in c.get('keep_with_next', auto):
         P[k].paragraph_format.keep_with_next = True
     for k in c.get('keep_together', []):
@@ -385,6 +415,15 @@ def build_letter(prof, spec, out_dir, folder, force=False, docx_only=False):
 
 
 # ---------------------------------------------------------------- verify
+def _coverage(keyword, text_lower, missing_label):
+    """'covered' for an exact (case-insensitive) hit, 'covered (variant)' for a plural/singular form."""
+    k = keyword.lower()
+    if k in text_lower:
+        return 'covered'
+    stem = k[:-1] if k.endswith('s') and len(k) > 3 else k + 's'
+    return 'covered (variant: ' + stem + ')' if stem in text_lower else missing_label
+
+
 def verify_docx(prof, kind, res, spec):
     """Text-only checks for a DOCX-only build (no PDF): email, must_contain, em dash, keyword coverage.
     Page count, ATS text layer and layout are NOT checked. Returns (ok, report)."""
@@ -402,7 +441,7 @@ def verify_docx(prof, kind, res, spec):
     kws = sec.get('keywords', [])
     if kws:
         rows.append('keyword coverage:')
-        rows += [f"  {'covered' if k.lower() in low else 'MISSING'}: {k}" for k in kws]
+        rows += [f"  {_coverage(k, low, 'MISSING')}: {k}" for k in kws]
     head = ('DOCX-only verification (text checks only). NOT checked: page count, PDF text layer, layout. '
             'Install LibreOffice (soffice) and rebuild with --force for the full check.')
     return ok, head + '\n' + '\n'.join(rows)
@@ -432,7 +471,7 @@ def verify(prof, kind, res, spec):
     kws = spec.get(kind, {}).get('keywords', [])
     if kws:
         txt = re.sub(r'\s+', ' ', pdf_text(pdf)).lower()
-        rows = [f"  {'covered' if k.lower() in txt else 'MISSING (re-check with pdftotext -layout)'}: {k}" for k in kws]
+        rows = [f"  {_coverage(k, txt, 'MISSING (re-check with pdftotext -layout)')}: {k}" for k in kws]
         report.append('keyword coverage:\n' + '\n'.join(rows))
     return ok, '\n'.join(report)
 

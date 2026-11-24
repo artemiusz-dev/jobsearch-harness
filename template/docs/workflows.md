@@ -12,7 +12,7 @@ Paths are workspace-relative. `<plugin>` is the installed plugin directory (`${C
 **After a JD analysis:**
 1. Run the liveness gate, then score with the **JD Fit Scoring Rubric** (`docs/scoring-rubric.md`): weighted dimensions plus pass/fail gates. Do not eyeball Match %. Write `**Overall Score: NN** - <Verdict>` into `analysis.md`.
 2. Create the company folder (`paths.output_dir_pattern`) and save the analysis as `analysis.md`. Also save the full posting text verbatim (never a summary) as `job-posting.md`: postings expire, and interview prep and follow-ups need the exact text that was applied to. If the text is no longer available, write nothing and say so; never reconstruct a posting from memory.
-3. Add or update the tracker row: Status `To Apply` (verdict Apply or Apply with caveats) or `SKIP` (Skip, failed gate, closed posting). For Discuss (Moderate Fit) add no row until the user decides. Populate Company, Role, Source, Match % (= Overall Score), Salary, Folder, Updated.
+3. Add or update the tracker row: Status `To Apply` (verdict Apply or Apply with caveats) or `SKIP` (Skip, failed gate, closed posting). For Discuss (Moderate Fit) add no row until the user decides. Populate Company, Role, Source, Match % (= Overall Score), Salary, Folder through `tracker_add.py` (see the workspace `CLAUDE.md`).
 4. Update `pipeline.md` notes if there are blockers or signals worth tracking.
 5. Suggest CV tailoring if the verdict is Apply or Apply with caveats. Do not suggest a cover letter.
 
@@ -57,8 +57,7 @@ Paths are workspace-relative. `<plugin>` is the installed plugin directory (`${C
 8. **Mock interview and thank-you.** Offer a mock round after the pack (warm-up, role-specific technical, 1-2 behavioral questions tied to the posting, one curveball; short feedback after each answer, naming the better STAR story). After any completed stage, offer a 2-3 sentence thank-you note in the Humanize voice, with no claims beyond the submitted materials.
 
 **Whenever status changes** (recruiter reply, interview scheduled, rejection, offer):
-- Update the tracker row: Status, stage column date, Next Action, Updated.
-- After any data change run `restyle_tracker.py` (restyles and verifies in one pass).
+- Update the tracker row with `tracker_add.py update` (Status, `--stage "<column>=<date>"`, Next Action); it backs up, validates and restyles in one pass.
 
 **When rebuilding the tracker from scratch** (for example after a schema change):
 - Follow `docs/tracker-schema.md`, regenerate with openpyxl, source data from the existing rows (never lose entries), back up first, then run `restyle_tracker.py`.

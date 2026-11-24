@@ -58,7 +58,7 @@ python3 <plugin>/scripts/build_application.py <company-folder> [--cv] [--letter]
 - `skills`: as many lines as the base CV's skills block has; unused lines are removed.
 - `p` indices refer to base-CV paragraphs (print them with `--map`). The builder asserts that `replace` strings exist.
 - `drop`: paragraph indices in priority order (lowest value first, per the CV Trimming Rule). The builder removes them one at a time until the CV fits `max_pages` with a clean layout.
-- `keep_with_next`: defaults to every paragraph starting with a prefix in `cv_map.keep_with_next_prefixes` (empty by default).
+- `keep_with_next`: defaults to every paragraph starting with a prefix in `cv_map.keep_with_next_prefixes`; when that list is empty the builder detects entry headers itself (a bold paragraph with a tab, i.e. role and dates, through the bold label line ending in `:`) so a header is never stranded at the bottom of a page.
 - The letter's name and contact line come from the base CV; the signature uses `identity.full_name`; em dashes are rejected when `style.forbid_em_dash` is on.
 - An ASCII hyphen in date ranges is enforced by `--verify`.
 

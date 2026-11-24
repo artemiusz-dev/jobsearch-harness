@@ -143,3 +143,41 @@ def test_init_workspace_passes_situation_and_greeting(tmp_path):
     assert run(tmp_path, t, answers=a).returncode == 0
     raw = yaml.safe_load((t / "profile.yaml").read_text(encoding="utf-8"))
     assert raw["situation"]["available_from"] == "immediately" and raw["style"]["reply_greeting"] == "Alex,"
+
+
+def test_auto_keep_with_next_keeps_entry_header_block_together():
+    import docx
+    from lib import cvbuild as cb
+    d = docx.Document()
+    rows = [("NAME", False), ("Title", False), ("contact", False), ("SUMMARY", True), ("text", False),
+            ("SKILLS", True), ("Lang: Go", False), ("EXPERIENCE", True)]
+    for t, bold in rows:
+        d.add_paragraph().add_run(t).bold = bold
+    hp = d.add_paragraph()                                                                # 8 header: bold role, plain dates
+    hp.add_run("Senior Engineer").bold = True
+    hp.add_run("\tJan 2020 - Jan 2021")
+    d.add_paragraph("Acme | Berlin")                                                      # 9 company line
+    d.add_paragraph("Built a platform for retailers.")                                    # 10 description
+    d.add_paragraph().add_run("Key Contributions:").bold = True                           # 11 label
+    d.add_paragraph("First bullet")                                                       # 12 bullet
+    d.add_paragraph("Second bullet")                                                      # 13
+    mp = {"experience_heading": 7}
+    got = cb.auto_keep_with_next(d.paragraphs, mp)
+    assert got == [7, 8, 9, 10, 11]                  # heading through the label; bullets are free to break
+
+
+def test_keyword_coverage_accepts_plural_variants():
+    from lib import cvbuild as cb
+    assert cb._coverage("payments", "built a payment system", "MISSING") == "covered (variant: payment)"
+    assert cb._coverage("API", "rest apis everywhere", "MISSING") == "covered"      # singular inside plural
+    assert cb._coverage("kafka", "uses go", "MISSING") == "MISSING"
+    assert cb._coverage("React", "react and redux", "MISSING") == "covered"
+
+
+def test_restyle_backups_never_overwrite_each_other(workspace):
+    import subprocess as sp
+    import sys as _s
+    script = str(__import__("pathlib").Path(__file__).resolve().parent.parent / "scripts" / "restyle_tracker.py")
+    for _ in range(3):
+        assert sp.run([_s.executable, script, "--workspace", str(workspace)], capture_output=True, text=True).returncode == 0
+    assert len(list((workspace / "_backup").glob("applications-tracker_*.xlsx"))) == 3

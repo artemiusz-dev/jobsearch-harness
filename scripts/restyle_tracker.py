@@ -99,7 +99,11 @@ def main():
 
     os.makedirs(backup_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(tracker))[0]
-    dest = os.path.join(backup_dir, f"{stem}_{datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')}.xlsx")
+    stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    dest, n = os.path.join(backup_dir, f"{stem}_{stamp}.xlsx"), 1
+    while os.path.exists(dest):          # backups are immutable: never overwrite one made in the same second
+        dest = os.path.join(backup_dir, f"{stem}_{stamp}_{n}.xlsx")
+        n += 1
     shutil.copy2(tracker, dest)
     print(f"Backup saved: {dest}")
 

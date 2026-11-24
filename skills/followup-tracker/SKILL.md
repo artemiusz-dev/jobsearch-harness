@@ -118,7 +118,7 @@ Then each drafted follow-up under its own heading: company, channel (LinkedIn/em
 ## Post-Completion Workflow
 
 - If a follow-up gets a response, suggest updating the tracker status and date (back up first, per the immutability rule), and record sent follow-ups as `followed up YYYY-MM-DD` in Next Action so `tracker_query.py quiet` counts them.
-- After any tracker update run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/restyle_tracker.py --workspace .`.
+- Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 
 ## Important Principles
 

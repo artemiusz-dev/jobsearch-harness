@@ -150,7 +150,7 @@ Follow the immutability rule in `CLAUDE.md` (back up before writing). For each r
 - **Discuss (Moderate Fit):** do NOT add automatically; list for the user to decide.
 - **Skip:** add a row with Status `SKIP` and a short reason in Next Action.
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/restyle_tracker.py --workspace .` and report: "Added X roles (Y as To Apply, Z as SKIP); N need your decision (Discuss)."
+Add each row with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (it backs up, validates, flags duplicates with exit code 2 and restyles); never edit the xlsx directly. Then report: "Added X roles (Y as To Apply, Z as SKIP); N need your decision (Discuss)."
 
 ---
 

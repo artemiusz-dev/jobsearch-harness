@@ -139,7 +139,7 @@ For each mapped story, a 2-3 sentence "elevator version" for when there is no ti
 
 1. Save the package to `<company-folder>/interview-prep.md`.
 2. If the tracker status is still APPLIED or SCREENING, suggest INTERVIEW once an interview is confirmed (back up first, per the immutability rule).
-3. After any tracker update run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/restyle_tracker.py --workspace .`.
+3. Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 
 ## Important Principles
 
