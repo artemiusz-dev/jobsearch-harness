@@ -6,7 +6,7 @@ A reproducible weighted score. Use it whenever `jd-analyzer` runs (or any JD is 
 
 ## Step 0 - Liveness gate (before any scoring)
 
-Check the posting is open: not closed, filled or expired; "not accepting applications" absent; apply link works. If closed: do NOT write a full analysis. Add or update the tracker row as `SKIP` with Next Action "Posting closed (date); re-check if reposted", and stop. A repost is a new check, not a reason to reuse an old score.
+Check the posting is open: not closed, filled or expired; "not accepting applications" absent; apply link works. If closed: do NOT write a full analysis. Add or update the tracker row with the skip status (`tracker.status_roles.closed`) and Next Action "Posting closed (date); re-check if reposted", and stop. A repost is a new check, not a reason to reuse an old score.
 
 ## Weighted dimensions (sum = 100%)
 
@@ -22,7 +22,7 @@ Role presets (`presets/roles/<role>.yaml`) supply role-specific wording for thes
 
 `Overall Score = Σ weight × dimension score`
 
-**Technical depth-risk adjustment:** the Technical score measures stack match, but past tech-stage rejections may come from depth gaps. If the JD or the known process stresses topics listed in `$P.scoring.depth_risk_keywords` (record yours from rejection feedback), subtract 5-10 from Technical and state it in the row note. This is a prep-fixable risk: it lowers the score but is not a gate.
+**Technical depth-risk adjustment:** the Technical score measures stack match, but past tech-stage rejections may come from depth gaps. If the JD or the known process stresses topics listed in `$P.scoring.depth_risk_keywords` (record yours from rejection feedback), subtract `$P.scoring.depth_risk_penalty` (default 5 to 10 points) from Technical and state it in the row note. This is a prep-fixable risk: it lowers the score but is not a gate.
 
 ## Pass/fail gates (not weighted, override the score)
 

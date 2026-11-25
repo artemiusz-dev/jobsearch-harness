@@ -5,15 +5,22 @@ The job scanner never calls a named board. Each entry in `profile.yaml -> boards
 ```yaml
 boards:
   - id: example_board          # your label, used in the Source column
-    adapter: example_board_mcp # tool-name prefix or connector id that implements the contract
+    adapter: example_board_mcp # MCP server name (tool-name prefix) or connector id that implements the contract
     enabled: true
     regions: [EU]
     max_results: 50
+    tools:                     # optional: exact tool names when they do not follow the pattern below
+      search: example_search_jobs
+      details: example_get_job_details
 ```
 
 ## Required tools
 
-An adapter exposes two tools. Names are up to the adapter; the scanner discovers them by the `adapter` prefix and the role described here.
+An adapter exposes two tools. Names are up to the adapter. The scanner resolves them in this order:
+
+1. `boards[].tools.search` and `tools.details`, when set (exact tool names, with or without the `mcp__<server>__` prefix).
+2. Among the tools of the MCP server named by `adapter`, the one whose name contains `search` (the search tool) and the one containing `details` or `get_` (the details tool). Real servers name them differently (`justjoinit_search_jobs`, `nfj_search_jobs`, `pracuj_get_offer`), so a bare prefix is not enough when a server has several candidates: set `tools` then.
+3. If nothing resolves, the board is reported as "adapter unavailable: <adapter>" in the scan summary and skipped. This is not an error.
 
 ### search
 

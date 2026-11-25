@@ -9,7 +9,7 @@ Writes a concise, targeted cover letter for a specific application. Every senten
 
 ## Context
 
-The base CV is `$P.paths.base_cv`. A job description should already be available. The workspace `CLAUDE.md` docs index points to the rules this skill depends on. Read `docs/humanize-rule.md` (banned phrases, voice) and `docs/cv-letter-quality.md` (Draft Review Pass, Factual Grounding) before drafting, and `docs/build-application.md` before building the file. Write a letter only when the user explicitly asks (`$P.letter.only_on_request`); never offer it proactively after a JD analysis or CV tailoring when that is true. All limits below come from `$P.style.limits`, `$P.style.tone_*`, `$P.style.languages.letter` and `$P.letter`; this skill states none of its own.
+The base CV is `$P.paths.base_cv`. A job description should already be available. The workspace `CLAUDE.md` docs index points to the rules this skill depends on. Read `docs/humanize-rule.md` (banned phrases, voice) and `docs/cv-letter-quality.md` (Draft Review Pass, Factual Grounding) before drafting, and `docs/build-application.md` before building the file. Write a letter only when the user explicitly asks (`$P.letter.only_on_request`); never offer it proactively after a JD analysis or CV tailoring when that is true. All limits below come from `$P.style.limits`, `$P.style.tone_options`, `$P.style.tone_default`, `$P.style.languages.letter` and `$P.letter`; this skill states none of its own.
 
 ## Prerequisites Check
 

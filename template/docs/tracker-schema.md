@@ -8,7 +8,7 @@ File: `paths.tracker` (default `applications-tracker.xlsx`), sheet `tracker.shee
 - The salary column name uses `compensation.currency` (for example `Salary (EUR gross)`), or `tracker.salary_column` if set.
 - `Folder` - the company folder name (for example `acme-senior-backend-2026-03-28`) for cross-referencing `analysis.md` and docs.
 - Stage columns (`Applied` -> `Offer / Rejected`) hold a date (YYYY-MM-DD) when the stage is completed and stay blank otherwise.
-- `restyle_tracker.py` needs `#`, `Status` and `Updated`. The other scripts read, when present: `Company`, `Role`, `Match %`, `Applied`, `Intro Call`, `Tech Interview`, `Final Interview`, `Offer / Rejected`, `Next Action`. Keep those names if you customise `tracker.columns`.
+- Scripts never hardcode these names. `tracker.fields` maps each logical field (`number`, `company`, `role`, `source`, `status`, `match`, `applied`, `outcome`, `next_action`, `folder`, `updated`) to its header, and `tracker.stages` lists the stage columns with their role (`screen`, `assignment`, `interview`, `final`). Rename a header there and every script follows; `tracker.columns` only sets the order. `restyle_tracker.py` needs the `number`, `status` and `updated` columns.
 
 ## Valid status values (default)
 | Status | Meaning | Row color |
@@ -28,7 +28,7 @@ File: `paths.tracker` (default `applications-tracker.xlsx`), sheet `tracker.shee
 | `WITHDRAWN` | Withdrew or role filled | grey (dimmed) |
 
 ## Status roles
-Scripts need to know which of your statuses mean "submitted, waiting", "got a reply", "reached interviews" and "offer". The defaults match the table above. If you rename statuses (`tracker.statuses`), you must also map them in `profile.yaml`; the profile fails validation if a mapped name is missing from your statuses:
+Scripts need to know which of your statuses mean "submitted, waiting", "got a reply", "reached interviews", "offer", "closed" and "in progress". The defaults match the table above; `tracker.default_new_status` (default `To Apply`) is the status of a new row. If you rename statuses (`tracker.statuses`), you must also map them in `profile.yaml`; the profile fails validation if a mapped name is missing from your statuses:
 
 ```yaml
 tracker:
@@ -37,6 +37,8 @@ tracker:
     replied: [Screening, Interviewing, Offer]
     interview: [Interviewing, Offer]
     offer: [Offer]
+    closed: [Dropped]
+    in_progress: [Preparing]
 ```
 
 ## Row sort order

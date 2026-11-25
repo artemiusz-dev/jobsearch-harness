@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-11-25
+- Drift protection (`tests/test_drift.py`): the example profile and `init_workspace.py` must equal the schema defaults; the scoring rubric and tracker-schema docs must quote the schema defaults (weights, thresholds, technical floor, statuses, column order); the banned phrase list and ATS domains must not be copied into scripts or the workspace `CLAUDE.md`; every `$P.<field>` reference in skills and templates must exist in the schema.
+- Skill lint: no status names or numeric limits (days, words, characters) inside skills (generic writing and review skills are listed exceptions); frontmatter `name` matches the directory.
+- Adapter resolution is explicit: `boards[].tools.{search,details}` names the exact tools, else the scanner looks inside the MCP server named by `adapter`; an unresolvable board is reported as "adapter unavailable" and skipped. `docs/adapters.md` explains why a bare prefix is not enough.
+- `tracker-schema.md` documents `tracker.fields` and `tracker.stages` instead of telling users to keep default column names.
+
 ## 0.7.0 - 2026-11-25
 - Personal values are read from the profile instead of being written into scripts and skills:
   - tracker scripts (`tracker_add`, `tracker_query`, `restyle_tracker`, `lib/calibration`) take column headers from `tracker.fields`, stage columns and their roles from `tracker.stages`, the new-row status from `tracker.default_new_status`, the follow-up marker from `followups.marker`, per-status windows from `followups.by_status`, and the fuzzy-match ratio and calibration sample size from `tracker.*`. A profile that renames every column, stage and status works end to end (`tests/test_rename_everything.py`).

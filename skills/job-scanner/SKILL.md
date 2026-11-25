@@ -27,7 +27,7 @@ In the rest of this skill, `$P` means a field of `profile.yaml`. Read it merged 
 5. **Liveness + quick assessment** - confirm each posting is open, then a lightweight fit check
 6. **Present summary table** - grouped by priority, with verdict, salary, notes
 7. **Full analysis** - run the jd-analyzer on High and Medium priority roles
-8. **Update tracker** - add Apply / Apply-with-caveats results as `To Apply`
+8. **Update tracker** - add Apply / Apply-with-caveats results with the default new status
 9. **Warm path check** - look for a referral or recruiter connection before CV tailoring
 
 ---
@@ -42,7 +42,7 @@ instead of loading old trackers into context (it ignores legal suffixes and pare
 
 ## Step 2: Search the Boards
 
-Each entry in `$P.boards` names an **adapter**: a connector or MCP tool pair that follows the contract in `${CLAUDE_PLUGIN_ROOT}/docs/adapters.md` (a search tool and a get-details tool). Resolve each enabled board to its tools. Skip a board whose tools are not available in this session and say so in the summary. Launch as many searches in parallel as possible.
+Each entry in `$P.boards` names an **adapter**: a connector or MCP tool pair that follows the contract in `${CLAUDE_PLUGIN_ROOT}/docs/adapters.md` (a search tool and a get-details tool). Resolve each enabled board to its tools as `docs/adapters.md` describes (`boards[].tools` first, then the MCP server named by `adapter`). Skip a board whose tools are not available in this session and report it in the summary as "adapter unavailable: <adapter>". Launch as many searches in parallel as possible.
 
 Build the queries from the profile, not from memory:
 

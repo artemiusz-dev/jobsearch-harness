@@ -927,6 +927,19 @@
               "type": "string"
             },
             "description": "Search track ids this board runs; empty = all."
+          },
+          "tools": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Exact tool names of the adapter when the search / details tools cannot be found by pattern.",
+            "properties": {
+              "search": {
+                "type": "string"
+              },
+              "details": {
+                "type": "string"
+              }
+            }
           }
         }
       }
