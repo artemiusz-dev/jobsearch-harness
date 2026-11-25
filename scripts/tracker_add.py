@@ -38,8 +38,7 @@ import openpyxl  # noqa: E402
 from jobprofile import ProfileError, add_workspace_arg, load_profile  # noqa: E402
 from tracker_query import BASE_SUFFIXES, norm_company  # noqa: E402
 
-FIELD_COLUMNS = {"company": "Company", "role": "Role", "source": "Source", "status": "Status", "match": "Match %",
-                 "applied": "Applied", "next_action": "Next Action", "folder": "Folder"}
+FIELDS = ("company", "role", "source", "status", "match", "applied", "next_action", "folder")     # command-line fields; headers come from the profile
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -82,21 +81,22 @@ def parse_stage(items, headers):
 def collect(a, prof, headers):
     """Column -> value for every field given on the command line."""
     vals = {}
-    for key, col in FIELD_COLUMNS.items():
+    for key in FIELDS:
         v = getattr(a, key, None)
         if v not in (None, ""):
-            vals[col] = v
-    if "Status" in vals:
+            vals[prof.col(key)] = v
+    status, applied, match = prof.col("status"), prof.col("applied"), prof.col("match")
+    if status in vals:
         names = [s["name"] for s in prof.statuses]
-        if vals["Status"] not in names:
-            raise TrackerError(f"status {vals['Status']!r} is not valid; use one of: {', '.join(names)}")
-    if "Applied" in vals:
-        check_date("--applied", vals["Applied"])
-    if "Match %" in vals:
+        if vals[status] not in names:
+            raise TrackerError(f"status {vals[status]!r} is not valid; use one of: {', '.join(names)}")
+    if applied in vals:
+        check_date("--applied", vals[applied])
+    if match in vals:
         try:
-            vals["Match %"] = float(vals["Match %"]) if "." in str(vals["Match %"]) else int(vals["Match %"])
+            vals[match] = float(vals[match]) if "." in str(vals[match]) else int(vals[match])
         except ValueError:
-            raise TrackerError(f"--match must be a number (got {vals['Match %']!r})") from None
+            raise TrackerError(f"--match must be a number (got {vals[match]!r})") from None
     if getattr(a, "salary", None):
         vals[prof.salary_column] = a.salary
     vals.update(parse_stage(getattr(a, "stage", None), headers))
@@ -106,34 +106,36 @@ def collect(a, prof, headers):
     return vals
 
 
-def candidates(rows, company, role, suffixes):
+def candidates(rows, company, role, suffixes, prof):
     target = norm_company(company, suffixes)
     if not target:
         raise TrackerError("company is empty after normalisation")
     hits = []
     for r in rows:
-        c = norm_company(r["Company"], suffixes)
+        c = norm_company(r[prof.col("company")], suffixes)
         if not c:
             continue
         tt, ct = set(target.split()), set(c.split())
-        if difflib.SequenceMatcher(None, target, c).ratio() >= 0.85 or tt <= ct or ct <= tt:
-            same_role = bool(role) and role.lower() in str(r.get("Role", "")).lower()
+        if difflib.SequenceMatcher(None, target, c).ratio() >= prof["tracker"]["match_ratio"] or tt <= ct or ct <= tt:
+            same_role = bool(role) and role.lower() in str(r.get(prof.col("role"), "")).lower()
             hits.append((r, same_role))
     return hits
 
 
-def read_rows(ws, headers):
+def read_rows(ws, headers, company_col):
     rows = []
     for i, cells in enumerate(ws.iter_rows(min_row=2), start=2):
         d = {h: c.value for h, c in zip(headers, cells) if h}
-        if d.get("Company"):
+        if d.get(company_col):
             d["_row"] = i
             rows.append(d)
     return rows
 
 
-def describe(r):
-    return f"row {r['_row']}: {r['Company']} | {r.get('Role')} | {r.get('Status')} | applied {r.get('Applied')} | updated {r.get('Updated')}"
+def describe(r, prof):
+    c = prof.col
+    return (f"row {r['_row']}: {r[c('company')]} | {r.get(c('role'))} | {r.get(c('status'))} | "
+            f"applied {r.get(c('applied'))} | updated {r.get(c('updated'))}")
 
 
 def run(a) -> int:
@@ -153,16 +155,17 @@ def run(a) -> int:
         return 1
     ws = wb[sheet]
     headers = [c.value for c in ws[1]]
-    for need in ("Company", "Status", "Updated"):
+    for need in (prof.col("company"), prof.col("status"), prof.col("updated")):
         if need not in headers:
             print(f"the tracker has no {need!r} column; nothing changed", file=sys.stderr)
             return 1
     suffixes = BASE_SUFFIXES | {s.lower() for s in prof["tracker"].get("company_suffixes", [])}
     today = dt.date.today().isoformat()
+    status_col, updated_col = prof.col("status"), prof.col("updated")
     try:
         vals = collect(a, prof, headers)
-        rows = read_rows(ws, headers)
-        hits = candidates(rows, a.company, getattr(a, "role", None), suffixes)
+        rows = read_rows(ws, headers, prof.col("company"))
+        hits = candidates(rows, a.company, getattr(a, "role", None), suffixes, prof)
         if a.cmd == "add":
             if not a.role:
                 raise TrackerError("add needs --role")
@@ -170,22 +173,23 @@ def run(a) -> int:
             if same and not a.allow_duplicate:
                 print("Refusing to add: the same company and role is already in the tracker:", file=sys.stderr)
                 for r in same:
-                    print("  " + describe(r), file=sys.stderr)
+                    print("  " + describe(r, prof), file=sys.stderr)
                 print("Use `update`, or --allow-duplicate if this is a different requisition.", file=sys.stderr)
                 return 2
             for r, _ in hits:
                 if r not in same:
-                    print("note: same company, other role: " + describe(r))
-            vals.setdefault("Status", "To Apply" if "To Apply" in [s["name"] for s in prof.statuses] else prof.statuses[0]["name"])
-            vals["Updated"] = today
+                    print("note: same company, other role: " + describe(r, prof))
+            names = [s["name"] for s in prof.statuses]
+            vals.setdefault(status_col, prof.default_new_status if prof.default_new_status in names else names[0])
+            vals[updated_col] = today
             row = [vals.get(h) if h else None for h in headers]
             if a.dry_run:
-                print("dry run: would append", {k: v for k, v in vals.items()})
+                print("dry run: would append", dict(vals))
                 return 0
             made = backup(tracker, prof.path("backup_dir"))
             ws.append(row)
             wb.save(tracker)
-            print(f"Added {a.company} | {a.role} | {vals['Status']}. Backup: {made}")
+            print(f"Added {a.company} | {a.role} | {vals[status_col]}. Backup: {made}")
         else:
             if not hits:
                 raise TrackerError(f"no row matches company {a.company!r}")
@@ -193,25 +197,26 @@ def run(a) -> int:
             if len(pick) != 1:
                 print(f"{len(pick)} rows match; say which one (add --role) before anything is changed:", file=sys.stderr)
                 for r in (pick or [r for r, _ in hits]):
-                    print("  " + describe(r), file=sys.stderr)
+                    print("  " + describe(r, prof), file=sys.stderr)
                 return 2
             target = pick[0]
-            vals.pop("Company", None)
-            vals.pop("Role", None)
+            vals.pop(prof.col("company"), None)
+            vals.pop(prof.col("role"), None)
             if a.append_next_action:
-                old = str(target.get("Next Action") or "").strip()
-                vals["Next Action"] = f"{old}; {a.append_next_action}" if old else a.append_next_action
+                na = prof.col("next_action")
+                old = str(target.get(na) or "").strip()
+                vals[na] = f"{old}; {a.append_next_action}" if old else a.append_next_action
             if not vals:
                 raise TrackerError("nothing to update: give --status, --stage, --next-action, ...")
-            vals["Updated"] = today
+            vals[updated_col] = today
             if a.dry_run:
-                print(f"dry run: would update {describe(target)} with", vals)
+                print(f"dry run: would update {describe(target, prof)} with", vals)
                 return 0
             made = backup(tracker, prof.path("backup_dir"))
             for col, v in vals.items():
                 ws.cell(row=target["_row"], column=headers.index(col) + 1, value=v)
             wb.save(tracker)
-            print(f"Updated {target['Company']} ({', '.join(vals)}). Backup: {made}")
+            print(f"Updated {target[prof.col('company')]} ({', '.join(vals)}). Backup: {made}")
     except TrackerError as e:
         print(f"tracker_add: {e}", file=sys.stderr)
         return 1

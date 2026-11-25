@@ -55,7 +55,7 @@ def norm_company(name: str, suffixes: set[str]) -> str:
     return " ".join(toks)
 
 
-def load(path: Path, sheet: str):
+def load(path: Path, sheet: str, company_col: str):
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
         if sheet not in wb.sheetnames:
@@ -70,7 +70,7 @@ def load(path: Path, sheet: str):
     out = []
     for r in rows[1:]:
         d = dict(zip(head, r))
-        if d.get("Company"):
+        if d.get(company_col):
             d["_src"] = path.name
             out.append(d)
     return out
@@ -79,11 +79,12 @@ def load(path: Path, sheet: str):
 def all_sources(prof):
     sheet = prof["tracker"]["sheet"]
     live = prof.path("tracker")
-    srcs = [("live", load(live, sheet))] if live.exists() else []
+    cc = prof.col("company")
+    srcs = [("live", load(live, sheet, cc))] if live.exists() else []
     for rel in prof["tracker"].get("archives", []):
         p = prof.workspace / rel
         if p.exists():
-            srcs.append(("archive:" + p.name, load(p, sheet)))
+            srcs.append(("archive:" + p.name, load(p, sheet, cc)))
     return srcs
 
 
@@ -114,14 +115,14 @@ def cmd_match(prof, a):
     hits = []
     for label, rows in all_sources(prof):
         for r in rows:
-            c = norm_company(r["Company"], suffixes)
+            c = norm_company(r[prof.col("company")], suffixes)
             if not c:
                 continue
             ratio = difflib.SequenceMatcher(None, target, c).ratio()
             tt, ct = set(target.split()), set(c.split())
             contained = tt <= ct or ct <= tt          # whole-word containment: "go" must not match "google"
-            if ratio >= 0.85 or contained:
-                if a.role and a.role.lower() not in str(r.get("Role", "")).lower():
+            if ratio >= prof["tracker"]["match_ratio"] or contained:
+                if a.role and a.role.lower() not in str(r.get(prof.col("role"), "")).lower():
                     tag = "same company, other role"
                 else:
                     tag = "same company" if not a.role else "same company + role"
@@ -131,10 +132,11 @@ def cmd_match(prof, a):
         return 0
     print(f"{len(hits)} match(es) for '{a.company}' (normalised: '{target}'):")
     for label, r, tag, _ratio in hits:
+        c = prof.col
         print(
-            f"- [{label}] {r['Company']} | {r.get('Role')} | {r.get('Status')} | "
-            f"match {r.get('Match %')} | applied {r.get('Applied')} | "
-            f"outcome {r.get('Offer / Rejected')} | updated {r.get('Updated')} | {tag}"
+            f"- [{label}] {r[c('company')]} | {r.get(c('role'))} | {r.get(c('status'))} | "
+            f"match {r.get(c('match'))} | applied {r.get(c('applied'))} | "
+            f"outcome {r.get(c('outcome'))} | updated {r.get(c('updated'))} | {tag}"
         )
     return 0
 
@@ -148,24 +150,28 @@ def cmd_quiet(prof, a):
         print(f"No tracker at {prof.path('tracker')}")
         return 1
     roles = prof["tracker"]["status_roles"]
-    rows = load(prof.path("tracker"), prof["tracker"]["sheet"])
+    c = prof.col
+    rows = load(prof.path("tracker"), prof["tracker"]["sheet"], c("company"))
+    marker = re.compile(re.escape(prof["followups"]["marker"]).replace(re.escape("{date}"), r"(\d{4}-\d{2}-\d{2})"))
     cand, stale = [], []
     for r in rows:
-        if r.get("Status") not in roles["open_for_followup"]:
+        status = r.get(c("status"))
+        if status not in roles["open_for_followup"]:
             continue
-        na = str(r.get("Next Action") or "")
-        fu = re.findall(r"followed up (\d{4}-\d{2}-\d{2})", na)
-        dates = [to_date(x) for x in fu] + [to_date(r.get("Applied"))]
+        na = str(r.get(c("next_action")) or "")
+        fu = marker.findall(na)
+        dates = [to_date(x) for x in fu] + [to_date(r.get(c("applied")))]
         dates = [d for d in dates if d]
         last = max(dates) if dates else None
         if last is None:
-            print(f"! no parsable Applied date, skipped: {r['Company']} | {r.get('Role')}")
+            print(f"! no parsable {c('applied')} date, skipped: {r[c('company')]} | {r.get(c('role'))}")
             continue
         days = (today - last).days
-        item = (days, r["Company"], r.get("Role"), r.get("Status"), len(fu), r.get("Applied"))
+        item = (days, r[c("company")], r.get(c("role")), status, len(fu), r.get(c("applied")))
+        first_days = a.days if a.days is not None else prof.followup_days(status)[0]
         if days >= stale_days:
             stale.append(item)
-        if days >= days_min and len(fu) < max_fu:
+        if days >= first_days and len(fu) < max_fu:
             cand.append(item)
     cand.sort(reverse=True)
     print(f"Follow-up candidates (>= {days_min}d quiet, < {max_fu} follow-ups): {len(cand)}")
@@ -193,17 +199,18 @@ def cmd_bands(prof, a):
     for label, rows in all_sources(prof):
         stats: dict[str, dict[str, int]] = {}
         for r in rows:
-            s = to_score(r.get("Match %"))
-            applied = to_date(r.get("Applied")) is not None  # rows without an Applied date (direct/referral) are excluded
+            s = to_score(r.get(prof.col("match")))
+            applied = to_date(r.get(prof.col("applied"))) is not None  # rows without an applied date (direct/referral) are excluded
             if s is None or not applied:
                 continue
             b = stats.setdefault(band(s), dict(n=0, replied=0, interview=0, offer=0))
             b["n"] += 1
-            if r.get("Intro Call") or r.get("Status") in roles["replied"]:
+            st = r.get(prof.col("status"))
+            if any(r.get(x) for x in prof.stage_columns_for("screen")) or st in roles["replied"]:
                 b["replied"] += 1
-            if r.get("Tech Interview") or r.get("Final Interview") or r.get("Status") in roles["interview"]:
+            if any(r.get(x) for x in prof.stage_columns_for("interview", "final")) or st in roles["interview"]:
                 b["interview"] += 1
-            if r.get("Status") in roles["offer"]:
+            if st in roles["offer"]:
                 b["offer"] += 1
         tag = f"rubric {prof['scoring']['rubric_version']}" if label == "live" else "archive: rubric may differ"
         print(f"\n{label} ({tag}) - applications with a Match % and an Applied date")
@@ -226,22 +233,23 @@ def cmd_summary(prof, a):
     if not path.exists():
         print(f"No tracker at {path}")
         return 1
-    rows = load(path, prof["tracker"]["sheet"])
+    c = prof.col
+    rows = load(path, prof["tracker"]["sheet"], c("company"))
     order = [x["name"] for x in prof.statuses]
     counts: dict[str, int] = {}
     for r in rows:
-        counts[str(r.get("Status") or "(blank)")] = counts.get(str(r.get("Status") or "(blank)"), 0) + 1
+        counts[str(r.get(c("status")) or "(blank)")] = counts.get(str(r.get(c("status")) or "(blank)"), 0) + 1
     print(f"Tracker: {len(rows)} rows ({path.name})")
     for name in order + sorted(set(counts) - set(order)):
         if name in counts:
             print(f"  {name:<10} {counts[name]:>4}")
-    stages = ["Applied", "Intro Call", "Assignment", "Tech Interview", "Final Interview", "Offer / Rejected"]
+    stages = [c("applied"), *prof.stage_columns, c("outcome")]
     reached = {st: sum(1 for r in rows if to_date(r.get(st)) is not None) for st in stages}
     print("\nStage columns with a date: " + ", ".join(f"{st} {n}" for st, n in reached.items()))
     roles = prof["tracker"]["status_roles"]
     today = dt.date.today()
-    open_rows = [r for r in rows if r.get("Status") in roles["open_for_followup"]]
-    ages = sorted((today - d).days for r in open_rows if (d := to_date(r.get("Applied"))) is not None)
+    open_rows = [r for r in rows if r.get(c("status")) in roles["open_for_followup"]]
+    ages = sorted((today - d).days for r in open_rows if (d := to_date(r.get(c("applied")))) is not None)
     if ages:
         print(f"Open applications ({'/'.join(roles['open_for_followup'])}): {len(open_rows)}; days since applied: "
               f"median {ages[len(ages) // 2]}, oldest {ages[-1]}")
@@ -251,11 +259,12 @@ def cmd_summary(prof, a):
 
 def cmd_calibrate(prof, a):
     from lib import calibration as cal
+    min_n = prof["tracker"]["calibration_min_n"]
     band, labels = make_band(prof.band_edges)
     roles = prof["tracker"]["status_roles"]
     today = dt.date.today()
     for label, rows in all_sources(prof):
-        stats, too_recent = cal.band_stats(rows, band, roles, today, a.mature_days, to_score, to_date)
+        stats, too_recent = cal.band_stats(rows, band, roles, today, a.mature_days, to_score, to_date, prof)
         tag = f"rubric {prof['scoring']['rubric_version']}" if label == "live" else "archive: rubric may differ"
         print(f"\n{label} ({tag}) - applied at least {a.mature_days} days ago ({too_recent} newer applications left out)")
         if not stats:
@@ -265,9 +274,9 @@ def cmd_calibrate(prof, a):
         for k in labels:
             if k in stats:
                 v = stats[k]
-                star = "*" if v["n"] < cal.MIN_N else " "
+                star = "*" if v["n"] < min_n else " "
                 print(f"  {k:<7} | {v['n']:>6}{star} | {cal.fmt_rate(v['replied'], v['n']):<22} | {v['interview']:>9} | {v['offer']:>5}")
-        for line in cal.verdict(labels, stats):
+        for line in cal.verdict(labels, stats, min_n):
             print("  -> " + line)
     print("\nA reply is an intro call or a status in tracker.status_roles.replied. Archives use another rubric: read them "
           "separately. Thresholds live in profile.yaml (scoring.thresholds); change them only after the verdict says the bands separate.")
@@ -290,13 +299,15 @@ def main():
     sm = sub.add_parser("summary")
     sm.set_defaults(fn=cmd_summary)
     c = sub.add_parser("calibrate")
-    c.add_argument("--mature-days", type=int, default=14, help="ignore applications newer than this (a reply needs time)")
+    c.add_argument("--mature-days", type=int, default=None, help="ignore applications newer than this (default: tracker.mature_days)")
     c.set_defaults(fn=cmd_calibrate)
     a = ap.parse_args()
     try:
         prof = load_profile(a.workspace)
     except ProfileError as e:
         sys.exit(str(e))
+    if getattr(a, "mature_days", 0) is None:
+        a.mature_days = prof["tracker"]["mature_days"]
     return a.fn(prof, a)
 
 

@@ -30,7 +30,7 @@ def test_defaults_come_from_the_schema_only(tmp_path):
 
 
 def test_actively_exploring_is_banned_everywhere_by_default(tmp_path):
-    assert "actively exploring new opportunities" in jp.load_profile(ws(tmp_path)).banned_phrases()
+    assert "actively exploring" in jp.load_profile(ws(tmp_path)).banned_phrases()
 
 
 def test_banned_list_is_replaced_not_appended_and_channels_extend(tmp_path):

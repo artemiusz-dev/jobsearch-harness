@@ -9,9 +9,9 @@ Reads the applications tracker, identifies applications that need follow-up base
 
 ## Context
 
-The tracker is `$P.paths.tracker`, sheet `$P.tracker.sheet`. Timing limits come from `$P.followups`: `first_after_days`, `second_after_days`, `max_followups`, `stale_after_days`, `referral_first`. The thresholds below are the defaults for those fields; if the profile changes them, use the profile's values and scale the per-status windows proportionally.
+The tracker is `$P.paths.tracker`, sheet `$P.tracker.sheet`. Column headers come from `$P.tracker.fields` and `$P.tracker.stages`. Timing comes only from `$P.followups`: `first_after_days` and `second_after_days` (a status listed in `by_status` overrides them), `max_followups`, `stale_after_days`, `marker`, `history_window_days`, `referral_first`, `draft_only`. This skill states no day counts of its own; if a number below seems missing, it is in the profile.
 
-For a quick mechanical pass, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_query.py --workspace . quiet`; it lists APPLIED / CV SENT rows quiet for `first_after_days` with fewer than `max_followups` logged follow-ups (counted from the marker `followed up YYYY-MM-DD` in Next Action) plus stale-sweep candidates. Then apply the full rules below.
+For a quick mechanical pass, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_query.py --workspace . quiet`; it lists rows whose status is in `$P.tracker.status_roles.open_for_followup`, quiet for their first-follow-up window, with fewer than `max_followups` logged follow-ups (counted from `$P.followups.marker` in the next-action column) plus stale-sweep candidates. Then apply the full rules below.
 
 ## When Triggered
 
@@ -23,40 +23,39 @@ For a quick mechanical pass, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_
 
 ## Step 1: Read the Tracker
 
-Extract all rows: Company, Role, Status, all stage date columns (Applied, Intro Call, Assignment, Tech Interview, Final Interview, Offer / Rejected), Next Action, Updated.
+Extract all rows with the columns named in `$P.tracker.fields` and `$P.tracker.stages`.
 
-Filter to **active applications only**. Skip `BACKLOG`, `To Apply`, `ANALYZING`, `SKIP`, `REJECTED`, `WITHDRAWN`, `OFFER`. Active statuses to monitor: `APPLIED`, `CV SENT`, `SCREENING`, `INTERVIEW`, `APPLYING`, `REFERRAL` (use the profile's status names if `tracker.statuses` overrides them).
+Filter to **active applications only**. Skip statuses in `$P.tracker.status_roles.closed` and the offer status. Monitor the statuses in `open_for_followup`, `replied` (except offer) and `in_progress`. Always use the profile's status names, never literals from this document.
 
 ## Step 2: Calculate Staleness
 
-`last activity` = the most recent non-empty date across stage columns, or `Updated` if none. `days_since_activity = today - last activity`.
+`last activity` = the most recent non-empty date across the stage columns, the applied column and any `$P.followups.marker` date, or the updated column if none. `days_since_activity = today - last activity`.
 
 ## Step 3: Classify by Urgency
 
-### APPLIED / CV SENT
-- Under `first_after_days` (default 7): on track.
-- `first_after_days` to just under `second_after_days`: follow-up due; draft a first follow-up.
-- `second_after_days` up to `stale_after_days`: overdue; draft a stronger second attempt.
-- Beyond that: likely dead. Flag for the user: one last follow-up or mark withdrawn (propose only; the user confirms any status change).
+Per status, take `(first, second)` from `$P.followups.by_status[<status>]`, falling back to `first_after_days` and `second_after_days`.
 
-### SCREENING
-- 0-3 days: on track. 4-6: follow-up due, nudge to keep momentum. 7+: overdue, they may have moved on; draft a check-in.
+### Statuses in `open_for_followup` (applied, CV sent)
+- Under `first`: on track.
+- `first` to just under `second`: follow-up due; draft a first follow-up.
+- `second` up to `stale_after_days`: overdue; draft a stronger second attempt, only if fewer than `max_followups` follow-ups are logged.
+- Beyond that, or `max_followups` reached: likely dead. Flag for the user: one last follow-up or mark withdrawn (propose only; the user confirms any status change).
 
-### INTERVIEW
-- 0-2 days: on track (processing time). 3-5: follow-up due; thank-you or check-in if not already sent. 6+: overdue; draft a status inquiry.
+### Statuses in `replied` (screening, interview)
+Same logic with the windows from `by_status` for that status. A reply stage with no `by_status` entry uses the global windows; say so in the summary instead of inventing shorter ones. After an interview, a thank-you or status inquiry is the follow-up.
 
-### APPLYING / REFERRAL
-- 0-3 days: on track (preparing materials). 4-7: stalling; this is a reminder to finish or submit the referral, not a message to send. 8+: at risk of missing the window; urgent self-action.
+### Statuses in `in_progress` (applying, referral, analysing)
+Not messages: reminders for the user to finish, submit or ask the referrer. Flag when the row has sat longer than `first_after_days`.
 
 ## Step 4: Draft Follow-Up Messages
 
 For each application "due" or "overdue", draft a ready-to-send message.
 
 ### Message Principles
-- **Short:** 3-5 sentences. Recruiters skim.
+- **Short:** within `$P.style.limits.followup_words` (min-max words). Recruiters skim.
 - **Specific:** reference the role, a detail from a conversation, or the application date.
 - **Interest without desperation:** "still very interested" is fine; "please respond" is not.
-- **Soft time element** ("I'm moving forward with a few other opportunities") only if true.
+- **No new claims.** Reference only what was submitted or said; no pressure lines about other offers or timelines the user has not stated.
 - Never guilt-trip or complain about silence.
 - **Match the channel:** LinkedIn shorter and more casual than email.
 - **Referral first:** where `$P.followups.referral_first` is true and a warm contact exists at the company, route the nudge through that contact before a cold recruiter message.
@@ -67,7 +66,7 @@ For each application "due" or "overdue", draft a ready-to-send message.
 ### First Follow-Up (adapt, do not copy verbatim)
 1. Reference the specific role and when you applied or spoke.
 2. Restate interest with a specific reason (something about the role or company).
-3. Mention your timeline naturally.
+3. Mention availability only if `$P.situation.available_from` is set.
 4. Close with an easy question or next step.
 
 ### Second Follow-Up (stronger)
@@ -85,10 +84,9 @@ Reminders for the user, not messages: "You've been in APPLYING for X days for [C
 Pipeline Health - [today's date]
 
 Active Applications: X
-  APPLIED/CV SENT: X (Y need follow-up)
-  SCREENING: X
-  INTERVIEW: X
-  APPLYING/REFERRAL: X (Y stalling)
+  <open_for_followup statuses>: X (Y need follow-up)
+  <replied statuses>: X
+  <in_progress statuses>: X (Y stalling)
 
 Urgent (action today):
   - [Company] - [Role] - [Status] - [days] days - [action needed]
@@ -100,7 +98,7 @@ On Track:
   - [Company] - [Role] - [Status] - [days] days
 
 Stalling (your action needed):
-  - [Company] - [Role] - APPLYING - [days] days - finish and submit
+  - [Company] - [Role] - [in_progress status] - [days] days - finish and submit
 
 Likely Dead:
   - [Company] - [Role] - [days] days - recommend: withdraw or final follow-up
@@ -117,7 +115,7 @@ Then each drafted follow-up under its own heading: company, channel (LinkedIn/em
 
 ## Post-Completion Workflow
 
-- If a follow-up gets a response, suggest updating the tracker status and date (back up first, per the immutability rule), and record sent follow-ups as `followed up YYYY-MM-DD` in Next Action so `tracker_query.py quiet` counts them.
+- If a follow-up gets a response, suggest updating the tracker status and date (back up first, per the immutability rule), and record sent follow-ups with the text from `$P.followups.marker` (`{date}` = YYYY-MM-DD) in the next-action column so `tracker_query.py quiet` counts them. Skills only draft: `$P.followups.draft_only` is true, nothing is sent.
 - Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 
 ## Important Principles

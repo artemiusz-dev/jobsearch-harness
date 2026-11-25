@@ -9,7 +9,7 @@ Writes a concise, targeted cover letter for a specific application. Every senten
 
 ## Context
 
-The base CV is `$P.paths.base_cv`. A job description should already be available. The workspace `CLAUDE.md` docs index points to the rules this skill depends on. Read `docs/humanize-rule.md` (banned phrases, voice) and `docs/cv-letter-quality.md` (Draft Review Pass, Factual Grounding) before drafting, and `docs/build-application.md` before building the file. Write a letter only when the user explicitly asks; never offer it proactively after a JD analysis or CV tailoring.
+The base CV is `$P.paths.base_cv`. A job description should already be available. The workspace `CLAUDE.md` docs index points to the rules this skill depends on. Read `docs/humanize-rule.md` (banned phrases, voice) and `docs/cv-letter-quality.md` (Draft Review Pass, Factual Grounding) before drafting, and `docs/build-application.md` before building the file. Write a letter only when the user explicitly asks (`$P.letter.only_on_request`); never offer it proactively after a JD analysis or CV tailoring when that is true. All limits below come from `$P.style.limits`, `$P.style.tone_*`, `$P.style.languages.letter` and `$P.letter`; this skill states none of its own.
 
 ## Prerequisites Check
 
@@ -20,17 +20,17 @@ The base CV is `$P.paths.base_cv`. A job description should already be available
 
 ## Step 1: Determine Tone
 
-If the user has not specified a tone, ask before drafting:
+If the user has not specified a tone, ask before drafting, offering `$P.style.tone_options` (the descriptions below explain the three standard ones; `$P.style.tone_default` is the default):
 
 - **Direct & Technical** - leads with technical impact and architecture-level thinking. For engineering-led companies and JDs stressing depth.
 - **Balanced Professional** - technical substance plus leadership, collaboration, product thinking. For product companies and cross-functional roles. Default when signals are mixed.
 - **Narrative-Driven** - connects experiences through a story arc. For culture-heavy companies where "why you want to work here" matters as much as qualifications.
 
-Recommend a tone from JD signals; default to Balanced Professional.
+Recommend a tone from JD signals; default to `$P.style.tone_default`.
 
 ## Step 2: Research & Context Gathering
 
-**The company** - what they build, tech blog or open-source presence, market position. If the JD gives too little, ask: "What specifically interests you about [Company]? I want something genuine, not generic." Company-specific claims need a page from the company's own domain (or consistent independent reporting); a search snippet is a lead, not a source. Check `company_research/<company-slug>.json` (30-day cache, if the workspace uses one) first and update it after fresh research.
+**The company** - what they build, tech blog or open-source presence, market position. If the JD gives too little, ask: "What specifically interests you about [Company]? I want something genuine, not generic." Company-specific claims need a page from the company's own domain (or consistent independent reporting); a search snippet is a lead, not a source. Check `company_research/<company-slug>.json` (cache lifetime `$P.cv.research_cache_ttl_days`, folder `$P.paths.company_research_dir`, if the workspace uses one) first and update it after fresh research.
 
 **The role** - core challenge, team context, what makes it different from a generic posting.
 
@@ -40,23 +40,23 @@ Do not write until you have material for specificity. A generic letter is worse 
 
 ## Step 2b: Short Mode
 
-If the user says "short", "brief", "concise version" or similar, activate **Short Mode**: the **body text** (between greeting and sign-off) is **under 1,000 characters** including spaces. Greeting, sign-off and header block (name, contact, date, "Re:" line) do not count.
+If the user says "short", "brief", "concise version" or similar, activate **Short Mode**: the **body text** (between greeting and sign-off) is **under `$P.style.limits.letter_short_chars` characters** including spaces. Greeting, sign-off and header block (name, contact, date, "Re:" line) do not count.
 
-- **2 paragraphs only.** First: opening hook + why this company (merged). Second: strongest single achievement tied to the role + brief forward-looking close.
+- **`$P.style.limits.letter_short_paragraphs` paragraphs only.** First: opening hook + why this company (merged). Second: strongest single achievement tied to the role + brief forward-looking close.
 - No editorial notes unless asked.
 - Cut any sentence that does not directly connect the candidate to the role. Same quality bar: no filler, no cliches, "you/your" address.
 
-Skip the four-paragraph structure in Step 3 and set `"max_chars": 1000` in the letter spec; the builder fails if the body is over, and reports the final count. Report that count.
+Skip the standard structure in Step 3 and set `max_chars` to `letter_short_chars` in the letter spec; the builder fails if the body is over, and reports the final count. Report that count.
 
 ## Step 3: Write the Letter
 
-**Standard mode:** four paragraphs, under 400 words. Every sentence must pass: "Does this tell the reader something they would not know from the CV alone?" **Short mode:** see Step 2b.
+**Standard mode:** `$P.style.limits.letter_paragraphs` paragraphs, under `$P.style.limits.letter_words` words. Every sentence must pass: "Does this tell the reader something they would not know from the CV alone?" **Short mode:** see Step 2b.
 
 Write as if explaining to a smart friend why this role caught your eye and why you fit. Confident and conversational, not performative.
 
 ### Personal Address Rule
 
-Use "you" / "your team" / "your company" for the recipient, not the company name in third person. A letter is a conversation, not a report. The company name may appear once or twice (the "Re:" line, a specific factual reference), but the body defaults to "you" and "your".
+When `$P.style.address_reader_directly` is true: use "you" / "your team" / "your company" for the recipient, not the company name in third person. A letter is a conversation, not a report. The company name may appear once or twice (the "Re:" line, a specific factual reference), but the body defaults to "you" and "your".
 
 **Avoid:** "Acme values AI-augmented workflows as a core engineering practice."
 **Write:** "You value AI-augmented workflows as a core engineering practice."
@@ -114,14 +114,14 @@ The letter is built from the `letter` section of the company folder's spec, not 
 ## Post-Completion Workflow
 
 1. Outputs are in the company folder, named by `$P.identity.output_name_pattern` with kind `Cover-Letter` (`.docx` and `.pdf`).
-2. If a tracker row exists, no status change is needed (the letter is part of the APPLYING phase).
+2. If a tracker row exists, no status change is needed (the letter is part of the in-progress phase (`$P.tracker.status_roles.in_progress`)).
 3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.py --workspace .` (dry run first) if LibreOffice left lock or temp files.
 
 ## Important Principles
 
 - **Every sentence must add value.** If you can delete it without losing impact, delete it.
 - **Specificity over generality.**
-- **Standard mode: 400 words max. Short mode: 1,000 characters max (body only).** Brevity signals confidence.
+- **Respect the limits in `$P.style.limits`** (standard: words; short mode: characters, body only). Brevity signals confidence.
 - **CV and letter have different jobs.** The CV proves qualifications; the letter explains motivation and fit. Interpret, do not repeat.
 - **No fabricated enthusiasm.** Focus on the role and the challenge.
 - **Adapt formality to the company** (large enterprise vs startup vs remote company abroad).

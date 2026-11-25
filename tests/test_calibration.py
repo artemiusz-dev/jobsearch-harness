@@ -8,6 +8,20 @@ import score_compare as sc
 from lib import calibration as cal
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+
+
+class _Prof:
+    """Minimal stand-in for a Profile: default column names and the default stage roles."""
+    FIELDS = {"match": "Match %", "applied": "Applied", "status": "Status"}
+
+    def col(self, field):
+        return self.FIELDS[field]
+
+    def stage_columns_for(self, *roles):
+        return [c for c, r in (("Intro Call", "screen"), ("Tech Interview", "interview"), ("Final Interview", "final")) if r in roles]
+
+
+PROF = _Prof()
 ROLES = {"replied": ["SCREENING", "INTERVIEW", "OFFER"], "interview": ["INTERVIEW", "OFFER"], "offer": ["OFFER"]}
 
 
@@ -36,21 +50,21 @@ def _band(s):
 
 def test_band_stats_skip_recent_and_count_replies():
     rows, today = _rows([(50, 40, 2, 30), (80, 40, 20, 30), (80, 10, 10, 3)])
-    stats, recent = cal.band_stats(rows, _band, ROLES, today, 14, lambda v: float(v), lambda v: dt.date.fromisoformat(v))
+    stats, recent = cal.band_stats(rows, _band, ROLES, today, 14, lambda v: float(v), lambda v: dt.date.fromisoformat(v), PROF)
     assert recent == 10 and stats["<60"]["n"] == 40 and stats["75+"]["replied"] == 20
 
 
 def test_verdict_detects_separation_and_small_samples():
     rows, today = _rows([(50, 60, 3, 30), (80, 60, 30, 30)])
-    stats, _ = cal.band_stats(rows, _band, ROLES, today, 14, float, dt.date.fromisoformat)
-    text = " ".join(cal.verdict(["<60", "60-74", "75+"], stats))
+    stats, _ = cal.band_stats(rows, _band, ROLES, today, 14, float, dt.date.fromisoformat, PROF)
+    text = " ".join(cal.verdict(["<60", "60-74", "75+"], stats, 30))
     assert "replies more often" in text and "thresholds are doing work" in text
     flat_rows, _ = _rows([(50, 60, 6, 30), (80, 60, 7, 30)])
-    flat, _ = cal.band_stats(flat_rows, _band, ROLES, today, 14, float, dt.date.fromisoformat)
-    assert "does not yet predict" in " ".join(cal.verdict(["<60", "60-74", "75+"], flat))
+    flat, _ = cal.band_stats(flat_rows, _band, ROLES, today, 14, float, dt.date.fromisoformat, PROF)
+    assert "does not yet predict" in " ".join(cal.verdict(["<60", "60-74", "75+"], flat, 30))
     tiny_rows, _ = _rows([(50, 5, 1, 30)])
-    tiny, _ = cal.band_stats(tiny_rows, _band, ROLES, today, 14, float, dt.date.fromisoformat)
-    assert "too few" in " ".join(cal.verdict(["<60", "60-74", "75+"], tiny))
+    tiny, _ = cal.band_stats(tiny_rows, _band, ROLES, today, 14, float, dt.date.fromisoformat, PROF)
+    assert "too few" in " ".join(cal.verdict(["<60", "60-74", "75+"], tiny, 30))
 
 
 def test_calibrate_cli_runs_on_the_fixture_tracker(workspace):

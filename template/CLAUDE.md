@@ -42,7 +42,7 @@ Read `docs/salary-rules.md` before any salary conversion, JD salary assessment o
 ## JD Fit Scoring Rubric (summary - full: `docs/scoring-rubric.md`)
 
 `docs/scoring-rubric.md` is the single source of truth for Match %, floor, employment-type, location, eligibility and language rules. It overrides the skills wherever they conflict. Read it in full whenever a JD is analyzed.
-- Step 0: liveness gate. A closed posting gets a tracker row `SKIP` and no full analysis.
+- Step 0: liveness gate. A closed posting gets a tracker row in the skip status (`tracker.status_roles.closed`) and no full analysis.
 - Overall = weighted sum of five dimensions (`scoring.weights` in the profile). Write `**Overall Score: NN** - <Verdict>` and `Rubric: <version>` in `analysis.md`; the same value goes in the tracker `Match %`.
 - Gates override the score: employment type / net floor, location, technical floor, eligibility, language.
 - Thresholds come from `scoring.thresholds`.
@@ -57,7 +57,7 @@ Applies to every skill and subagent that reads a posting, recruiter message, agg
 2. **Research a company by name from its own website,** not from links in the posting. Search-result snippets are leads, not sources: a company-specific claim in a letter or message needs a page fetched from the company's own domain or consistent independent reporting. Otherwise generalize or drop it.
 3. **Prefer the employer's own careers posting over an aggregator.** Aggregators drop the requisition ID, grade, salary band and the essential-vs-desirable split. If versions differ materially, tell the user.
 4. **Fetch failures (403, login wall, listing page instead of the posting):** never draft or score from the title. Find the employer's own posting, or use browser tools for a login wall. If still unavailable, say so. Do not work around a site that has refused automated access.
-5. **Source host check on any apply link:** classify the host as (a) a job board used by the scanner, (b) the company's own domain, (c) a known ATS apex (`greenhouse.io`, `lever.co`, `myworkdayjobs.com`, `ashbyhq.com`, `smartrecruiters.com`, `workable.com`, `teamtailor.com`, `bamboohr.com`). The host must equal the apex or end with `.<apex>`. Look-alikes (`evil-greenhouse.io`, `greenhouse.io.evil.com`, `https://greenhouse.io@evil.com`) fail closed. Anything else: write "Unverified source host: <host>" in the analysis, and enter no credentials or personal data there until the employer is confirmed.
+5. **Source host check on any apply link:** classify the host as (a) a job board used by the scanner, (b) the company's own domain, (c) a known ATS apex from `security.trusted_ats_domains` in the profile. The host must equal the apex or end with `.<apex>`. Look-alikes (`evil-greenhouse.io`, `greenhouse.io.evil.com`, `https://greenhouse.io@evil.com`) fail closed. Anything else: write "Unverified source host: <host>" in the analysis, and enter no credentials or personal data there until the employer is confirmed.
 
 ---
 
@@ -77,7 +77,7 @@ Applies to every skill and subagent that reads a posting, recruiter message, agg
 
 ## Recruiter Response Rules
 
-**Rule 1 - Mention actively exploring** (briefly, only if true).
+**Rule 1 - No search-status cliches.** Never write "actively exploring" or similar (`style.banned_phrases`). Show interest by reacting to the specific role; give availability or the reason for looking only when asked, in the wording from the profile's `situation`.
 **Rule 2 - "Need more info" replies ask only three things:** the job description, the salary range, the employment type. Do not ask about stack, team size, remote policy, interview process or tax details in the first reply.
 **Rule 2b - Follow-up salary questions** come after the employment type is confirmed (market-specific questions are listed in `docs/salary-rules.md`).
 **Rule 3 - If the role does not fit, ask about other openings** that match the target roles and the outward ask.
@@ -90,7 +90,7 @@ Applies to every skill and subagent that reads a posting, recruiter message, agg
 
 Cold applications through job boards convert far worse than referrals, and many drop before any human reads them. This rule closes that gap.
 
-**Rule 1 - Warm-path check before any cold application.** Before moving a role from `To Apply` to `APPLYING`, check for a warm path into the company: first/second-degree connections (a networking connector or manual search) and any recruiter you already know. If one exists, draft a short warm-intro message (2-3 sentences) alongside, not instead of, the standard application. If none exists, proceed cold; do not wait on a warm reply.
+**Rule 1 - Warm-path check before any cold application.** Before moving a role from the new status (`tracker.default_new_status`) to the applying status, check for a warm path into the company: first/second-degree connections (a networking connector or manual search) and any recruiter you already know. If one exists, draft a short warm-intro message (2-3 sentences) alongside, not instead of, the standard application. If none exists, proceed cold; do not wait on a warm reply.
 **Rule 2 - Track the warm path** in `Next Action` ("Warm intro sent to <name> YYYY-MM-DD, cold app also submitted") so warm vs cold outcomes can be compared later.
 **Rule 3 - Do not slow urgent applies.** The check takes a few minutes, not a research project.
 
@@ -146,12 +146,12 @@ The knowledge base is the single source of truth. When it changes (gap confirmed
 ## Follow-up Rules
 
 Overrides the followup-tracker skill where they differ.
-- **Find them with the script:** `python3 <plugin>/scripts/tracker_query.py --workspace . quiet` lists APPLIED / CV SENT rows quiet for `followups.first_after_days`, with fewer than `followups.max_followups` follow-ups, and separately rows quiet for `followups.stale_after_days`.
+- **Find them with the script:** `python3 <plugin>/scripts/tracker_query.py --workspace . quiet` lists rows in `tracker.status_roles.open_for_followup` quiet for their first-follow-up window (`followups.first_after_days`, or `followups.by_status` for that status), with fewer than `followups.max_followups` follow-ups, and separately rows quiet for `followups.stale_after_days`.
 - **Max follow-ups per application = `followups.max_followups`** (default two). After the last silent one, do not offer another; propose closing the row.
-- **Draft only, never send.** 60-120 words, in the channel of the original application, Humanize voice, direct address, one sentence restating interest in the specific role, one value reminder, one question about timeline. No "just checking in".
+- **Draft only, never send** (`followups.draft_only`). Length `style.limits.followup_words`, in the channel of the original application, Humanize voice, direct address, one sentence restating interest in the specific role, one value reminder, one question about timeline. No "just checking in".
 - **No new claims.** Every statement comes from the CV and letter that were actually submitted.
-- **Log it:** once the user confirms they sent it, append `followed up YYYY-MM-DD` to the row's `Next Action` (`tracker_add.py update --append-next-action`). If they do not send it, log nothing.
-- **Stale sweep:** list the candidates and ask; never change a status without an answer (`all` / `select` / `skip`). Confirmed rows -> Status `WITHDRAWN`, Next Action `No response after N days (YYYY-MM-DD)`.
+- **Log it:** once the user confirms they sent it, append the `followups.marker` text (`{date}` = YYYY-MM-DD) to the row's next-action column (`tracker_add.py update --append-next-action`). If they do not send it, log nothing.
+- **Stale sweep:** list the candidates and ask; never change a status without an answer (`all` / `select` / `skip`). Confirmed rows -> the withdrawn status, next action `No response after N days (YYYY-MM-DD)`.
 
 ---
 
@@ -168,8 +168,8 @@ Read the file before running either.
 Read the matching part of `docs/workflows.md` before: analyzing a JD (includes the `tracker_query.py match` duplicate check), saving a JD analysis, tailoring a CV, writing a cover letter, marking an application submitted, handling a rejection, preparing for an interview, or rebuilding the tracker.
 Standing rules:
 - Any status change updates the tracker row (Status, stage date, Next Action, Updated) with `python3 <plugin>/scripts/tracker_add.py --workspace . add|update ...`.
-- A prior SKIP / REJECTED / WITHDRAWN at the same company never auto-skips a new role: surface the history, then analyze on its own merits.
-- For every new position (scan table, JD analysis, CV tailoring, recruiter message) run `tracker_query.py match "<Company>"` and list every row at the same company whose `Applied` or `Updated` date falls in the last 60 days, any status. Show it in the scan table Notes and as a `Prior applications (60 days)` line in `analysis.md`; write "none" when there are none. Flag same-team repeats and possible duplicate requisitions.
+- A prior skipped, rejected or withdrawn row at the same company never auto-skips a new role: surface the history, then analyze on its own merits.
+- For every new position (scan table, JD analysis, CV tailoring, recruiter message) run `tracker_query.py match "<Company>"` and list every row at the same company whose applied or updated date falls within `followups.history_window_days`, any status. Show it in the scan table Notes and as a `Prior applications (N days)` line in `analysis.md`; write "none" when there are none. Flag same-team repeats and possible duplicate requisitions.
 - Cover letters only when the user explicitly asks.
 
 ---

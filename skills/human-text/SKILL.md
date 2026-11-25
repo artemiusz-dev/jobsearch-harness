@@ -11,7 +11,7 @@ Two modes:
 - **Review mode** - the user pastes existing text; rewrite it to sound human.
 - **Generation mode** - applied proactively to your own output before delivering it.
 
-The workspace's `docs/humanize-rule.md` holds the project-specific banned-phrase list and house voice; if it exists, it extends and overrides this skill.
+In a job-search workspace, the banned phrases are `style.banned_phrases` (plus `style.channel_banned_phrases` for the channel) in the merged profile (`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jobprofile.py --workspace . --json`), and `docs/humanize-rule.md` holds the voice and structure rules; both extend and override this skill's defaults.
 
 ---
 

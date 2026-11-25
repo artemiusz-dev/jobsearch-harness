@@ -67,7 +67,7 @@ State the recommendation with a one-line rationale before drafting.
 
 ### Core Rules (all response types)
 
-**Rule 1 - Mention actively exploring.** A short natural signal ("Good timing - I'm actively exploring new opportunities"), woven in, not a separate sentence. Only if true for the user.
+**Rule 1 - No search-status cliches.** Never write "actively exploring" or a similar status line (it is on `$P.style.banned_phrases`). Show interest through a specific reaction to the role. State availability (`$P.situation.available_from`) or the reason for looking (`$P.situation.reason_to_give_recruiters`) only when asked, using that wording exactly.
 
 **Rule 2 - First reply asks only three things:** the job description (if not provided), the salary range, the employment type. Do NOT ask about stack, team size, remote policy, interview process or tax details in the first reply.
 
@@ -81,15 +81,15 @@ State the recommendation with a one-line rationale before drafting.
 
 ### If Interested
 - Open with something specific from their message; react, do not use template openings.
-- Express interest naturally (1-2 sentences), weave in Rule 1.
+- Express interest naturally (1-2 sentences) through a specific reaction to the role (Rule 1).
 - Ask the three essentials conversationally, not as a numbered list.
-- 60-150 words.
+- Length: `$P.style.limits.reply_words_interested` (min-max words).
 
 ### If Need More Info
-- Acknowledge briefly, say you need more detail to evaluate, ask the three essentials naturally, include Rule 1, keep the door open. 60-120 words.
+- Acknowledge briefly, say you need more detail to evaluate, ask the three essentials naturally, keep the door open. Length: `$P.style.limits.reply_words_info`.
 
 ### If Polite Decline
-- Thank briefly (one sentence), give a short honest reason, apply Rule 3, apply Rule 4 where relevant. 60-120 words.
+- Thank briefly (one sentence), give a short honest reason, apply Rule 3, apply Rule 4 where relevant. Length: `$P.style.limits.reply_words_info`.
 
 ## Humanization Principles
 
@@ -118,27 +118,18 @@ Reply in the language the recruiter used, if the user is comfortable in it (chec
 
 Use this section when the user asks for a cold message or outreach to a recruiter, hiring manager or warm contact (including the warm-intro message from the Referral-First rule). It does not apply to replies to inbound messages above.
 
-**Length: 2-3 sentences, hard cap, counted after the greeting.** Long messages signal low confidence and read as AI-generated. Short ones get read. A location or availability remark is not a fourth sentence: fold it into the pitch sentence. Never self-certify the count: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check_dm.py "<message>"` (or `--file` for several drafts separated by blank lines) and rewrite until it prints OK for every draft.
+**Length: at most `$P.style.limits.dm_sentences` sentences, hard cap, counted after the greeting.** Long messages signal low confidence and read as AI-generated. Short ones get read. A location or availability remark is not a fourth sentence: fold it into the pitch sentence. Never self-certify the count: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check_dm.py "<message>"` (or `--file` for several drafts separated by blank lines) and rewrite until it prints OK for every draft.
 
-**Structure (three sentences at most):**
+**Structure (up to the sentence cap):**
 1. **Context hook:** why this specific person (shared employer, they follow the user's content, their profile says they are hiring).
 2. **Pitch in one sentence:** years, stack, location, availability. Facts from the profile and knowledge base only.
 3. **One direct question:** a specific opening, not "let's connect".
 
-**Banned in DMs** (on top of the humanize rule):
-- "Happy to share my CV" in any form: drop it entirely.
-- "Would be glad to connect" and similar weak closers.
-- "which I appreciate" (sycophantic).
-- "actively exploring new opportunities" (HR cliche; Rule 1 is for replies to inbound messages, not cold DMs).
-- "wanted to reach out directly" (redundant, you are already messaging).
-- CV-pasted claims such as "track record in large-scale architecture".
-- Meta-commentary such as "I figure a direct message makes more sense than a cold application".
-- Hedging such as "I'm happy to hear the details first".
-- The same closer ("worth discussing?") across several messages: vary the close.
+**Banned in DMs:** everything in `$P.style.banned_phrases` plus `$P.style.channel_banned_phrases.dm` (weak closers, sycophancy, "happy to share my CV", CV-pasted claims, meta-commentary, hedging). `check_dm.py` enforces the list mechanically. Also vary the closing question across several messages instead of reusing one.
 
 **Good endings** are one direct question or fact:
-- "Any Frontend openings at [Company]?"
-- "Any Senior Frontend or Tech Lead positions open?"
+- "Any [target role from `$P.targets.roles`] openings at [Company]?"
+- "Any [senior or lead role from `$P.targets.roles`] positions open?"
 - Requirements as facts, not negotiation: "Employment contract required." not "I'd prefer an employment contract, but happy to discuss."
 
 When drafting several DMs at once, check that no two share the same opening or closing line. Do not invent a topic for the context hook beyond what the user told you (for example, do not add what their posts were about).
@@ -146,6 +137,7 @@ When drafting several DMs at once, check that no two share the same opening or c
 ## Post-Completion Workflow
 
 - If a company and role are identifiable and the user is interested, suggest adding it to the tracker with an appropriate status (back up first, per the immutability rule).
+- Before drafting, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_query.py --workspace . match "<company>"` and mention any application to the same company within `$P.followups.history_window_days` (never an auto-skip; surface it).
 - Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 
 ## Important Principles

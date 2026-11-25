@@ -90,8 +90,8 @@ The CV is built from a spec file, not from a per-company script. Per-company scr
 ## Post-Tailoring Workflow
 
 1. Outputs land in the company folder named by `$P.identity.output_name_pattern` (`.docx` and `.pdf`; PDF is the preferred submission format). Do not add a year to file names; the dated company folder is enough.
-2. Before moving the role to `APPLYING`, do the warm-path check from the referral-first rule in `CLAUDE.md`.
-3. Update the tracker row: Status `APPLYING` (`tracker_add.py ... update --company <C> --role <R> --status APPLYING`). Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
+2. Before moving the role to the in-progress status (the applying entry of `$P.tracker.status_roles.in_progress`), do the warm-path check from the referral-first rule in `CLAUDE.md`.
+3. Update the tracker row: Status = that applying status (`tracker_add.py ... update --company <C> --role <R> --status <status>`). Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 5. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.py --workspace .` (dry run first) if LibreOffice left lock or temp files.
 
 ## Important Principles

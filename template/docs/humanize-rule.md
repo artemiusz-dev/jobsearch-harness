@@ -4,19 +4,12 @@ Applies to: cover letters, application form answers (see `application-forms.md`)
 
 **Goal:** output must read as written by a real, experienced practitioner, not by an AI. Hiring managers and recruiters increasingly detect AI-generated text by its cadence, word choice and sentence structure, and detected AI text lowers credibility and response rates.
 
-Add your own entries (other languages, phrases you personally never use) at the bottom of each list. The `human-text` skill reads this file and treats it as an extension of its defaults.
+Add your own entries (other languages, patterns you personally never use) at the bottom of each list. The `human-text` skill reads this file and treats it as an extension of its defaults.
 
 ## Banned phrases and patterns
-- "I am passionate about" / "I have a passion for"
-- "I am excited to" / "I am thrilled to"
-- "leverage" (as a verb), "synergy", "synergize", "utilize" (use "use")
-- "results-driven", "team player", "detail-oriented", "go-getter"
-- "I would be a great fit for this role"
-- "I look forward to the opportunity to"
-- "I am confident that my experience..."
-- "cutting-edge", "dynamic team", "fast-paced environment"
-- "I am eager to bring my skills to..."
-- "proven track record"
+**The phrase list lives in one place: `style.banned_phrases` in `profile.yaml`** (global) and `style.channel_banned_phrases` (per channel: dm, recruiter_reply, letter, form_answer). Run `python3 <plugin>/scripts/jobprofile.py --workspace . --json` to see it. Edit the list there, not here; `check_dm.py` and the builders read it from the profile.
+
+The patterns below are about shape, not exact words, so they stay in prose:
 - Opening sentences that start with "I" followed by a self-praising adjective or claim
 - Triple-stacked superlatives ("highly motivated, results-oriented, detail-focused...")
 
@@ -32,7 +25,7 @@ Add your own entries (other languages, phrases you personally never use) at the 
 - **First-person yes, self-promotion prose no.** Concrete achievements over adjectives: "I led a migration of a 200k-line codebase" beats "I am experienced in large-scale projects".
 - **One idea per sentence.**
 - **No sign-off platitudes.** End letters and messages with a direct, specific statement, not "I look forward to hearing from you at your earliest convenience".
-- **LinkedIn DMs you start:** 2-3 sentences, one direct question; the full rules and banned closers are in the `recruiter-responder` skill (Outbound LinkedIn DMs).
+- **LinkedIn DMs you start:** at most `style.limits.dm_sentences` sentences, one direct question; the full rules and banned closers are in the `recruiter-responder` skill (Outbound LinkedIn DMs).
 - **Recruiter messages:** conversational, short sentences, no corporate tone; sound like a senior professional who knows their worth, not a job seeker performing enthusiasm.
 
 ## Tone calibration per document type
@@ -41,7 +34,7 @@ Add your own entries (other languages, phrases you personally never use) at the 
 - **Recruiter responses:** warm but brief; signal interest without performing eagerness; one or two sentences per point.
 
 ## After drafting - self-check
-1. Any phrase from the banned list: replace or remove.
+1. Any phrase from `style.banned_phrases` (plus the channel's extras): replace or remove.
 2. Any paragraph where every sentence starts with "I": restructure.
 3. Any unnecessarily complex word: replace with the simpler one.
 4. Any tech detail that serves no purpose for a non-technical reader: remove or summarize as outcome.

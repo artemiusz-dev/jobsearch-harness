@@ -231,12 +231,19 @@ class Profile:
     def salary_column(self) -> str:
         return self.data["tracker"].get("salary_column") or f"Salary ({self.currency} gross)"
 
+    def col(self, field: str) -> str:
+        """Header of a logical tracker field (number, company, role, source, status, match, applied, outcome,
+        next_action, folder, updated). Names come from tracker.fields; defaults live in the schema."""
+        return self.data["tracker"]["fields"][field]
+
     @property
     def tracker_columns(self) -> list[str]:
-        return self.data["tracker"].get("columns") or [
-            "#", "Company", "Role", "Source", "Status", "Match %", self.salary_column, "Applied", "Intro Call",
-            "Assignment", "Tech Interview", "Final Interview", "Offer / Rejected", "Next Action", "Folder", "Updated",
-        ]
+        explicit = self.data["tracker"].get("columns")
+        if explicit:
+            return explicit
+        c = self.col
+        return [c("number"), c("company"), c("role"), c("source"), c("status"), c("match"), self.salary_column, c("applied"),
+                *self.stage_columns, c("outcome"), c("next_action"), c("folder"), c("updated")]
 
     @property
     def statuses(self) -> list[dict]:
@@ -248,9 +255,11 @@ class Profile:
 
     @property
     def stage_columns(self) -> list[str]:
-        """Date columns that mark pipeline stages (profile tracker.stages, else the four default stage columns)."""
-        st = self.data["tracker"].get("stages")
-        return [s["column"] for s in st] if st else ["Intro Call", "Assignment", "Tech Interview", "Final Interview"]
+        """Date columns that mark pipeline stages (tracker.stages)."""
+        return [s["column"] for s in self.data["tracker"]["stages"]]
+
+    def stage_columns_for(self, *roles: str) -> list[str]:
+        return [s["column"] for s in self.data["tracker"]["stages"] if s.get("role") in roles]
 
     def status_role(self, role: str) -> list[str]:
         roles = self.data["tracker"].get("status_roles") or {}
@@ -320,6 +329,13 @@ def load_profile(workspace: str | os.PathLike | None = None) -> Profile:
         raise ProfileError("Invalid profile.yaml:\n  " + "\n  ".join(errs))
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     return Profile(_fill_defaults(schema, merged), ws)
+
+
+def schema_defaults(*sections: str) -> dict:
+    """Schema defaults for the given top-level sections, for scripts that must run without a workspace
+    (for example a mechanical check on a draft). Same values a profile gets for keys it leaves out."""
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return _fill_defaults(schema, {k: {} for k in sections})
 
 
 def add_workspace_arg(ap):

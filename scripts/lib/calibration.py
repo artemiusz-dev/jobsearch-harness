@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import math
 
-MIN_N = 30                      # per-band sample below which no conclusion is drawn (matches the rubric's guidance)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -17,14 +16,14 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return max(0.0, centre - half), min(1.0, centre + half)
 
 
-def band_stats(rows, band_of, roles, today, mature_days, to_score, to_date):
+def band_stats(rows, band_of, roles, today, mature_days, to_score, to_date, prof):
     """Per band: n, replied, interview, offer; plus how many rows were skipped as too recent.
-    A row counts when it has a Match % and an Applied date at least `mature_days` ago."""
+    A row counts when it has a match score and an applied date at least `mature_days` ago (column names from the profile)."""
     stats: dict[str, dict[str, int]] = {}
     too_recent = 0
     for r in rows:
-        s = to_score(r.get("Match %"))
-        applied = to_date(r.get("Applied"))
+        s = to_score(r.get(prof.col("match")))
+        applied = to_date(r.get(prof.col("applied")))
         if s is None or applied is None:
             continue
         if (today - applied).days < mature_days:
@@ -32,26 +31,27 @@ def band_stats(rows, band_of, roles, today, mature_days, to_score, to_date):
             continue
         b = stats.setdefault(band_of(s), dict(n=0, replied=0, interview=0, offer=0))
         b["n"] += 1
-        if r.get("Intro Call") or r.get("Status") in roles["replied"]:
+        st = r.get(prof.col("status"))
+        if any(r.get(x) for x in prof.stage_columns_for("screen")) or st in roles["replied"]:
             b["replied"] += 1
-        if r.get("Tech Interview") or r.get("Final Interview") or r.get("Status") in roles["interview"]:
+        if any(r.get(x) for x in prof.stage_columns_for("interview", "final")) or st in roles["interview"]:
             b["interview"] += 1
-        if r.get("Status") in roles["offer"]:
+        if st in roles["offer"]:
             b["offer"] += 1
     return stats, too_recent
 
 
-def verdict(labels, stats):
+def verdict(labels, stats, min_n):
     """Plain-language conclusion about whether the bands separate. Returns a list of lines."""
     present = [(k, stats[k]) for k in labels if k in stats]
     total_n = sum(v["n"] for _, v in present)
     lines = []
-    small = [k for k, v in present if v["n"] < MIN_N]
-    if total_n < MIN_N:
+    small = [k for k, v in present if v["n"] < min_n]
+    if total_n < min_n:
         return [f"Only {total_n} matured applications: too few to say anything. Keep the default thresholds."]
     if small:
-        lines.append(f"Bands with fewer than {MIN_N} applications ({', '.join(small)}) are marked * and are not used for conclusions.")
-    usable = [(k, v) for k, v in present if v["n"] >= MIN_N]
+        lines.append(f"Bands with fewer than {min_n} applications ({', '.join(small)}) are marked * and are not used for conclusions.")
+    usable = [(k, v) for k, v in present if v["n"] >= min_n]
     separated = False
     for (lo_k, lo), (hi_k, hi) in zip(usable, usable[1:]):
         lo_hi = wilson(lo["replied"], lo["n"])[1]

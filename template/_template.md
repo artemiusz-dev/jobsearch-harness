@@ -7,7 +7,7 @@
 **Employment type:** [as offered]
 **Location:** [place] / Remote / Hybrid
 **Salary range:** - [currency] gross / not stated
-**Prior applications (60 days):** [none | list from tracker_query.py match]
+**Prior applications (N days, `followups.history_window_days`):** [none | list from tracker_query.py match]
 **Posting health:** High Confidence / Proceed with Caution / Suspicious
 **Rubric:** [version from profile.yaml]
 

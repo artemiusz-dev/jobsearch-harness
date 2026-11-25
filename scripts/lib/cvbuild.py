@@ -34,6 +34,7 @@ from jobprofile import add_workspace_arg, load_profile  # noqa: E402
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DARK, ACCENT, MED = RGBColor(0x1a, 0x1a, 0x1a), RGBColor(0x2b, 0x57, 0x97), RGBColor(0x55, 0x55, 0x55)
 EM_DASH = chr(0x2014)
+PAPER_MM = {'A4': (Mm(210), Mm(297)), 'Letter': (Mm(215.9), Mm(279.4))}
 LAYOUT_SKIPPED = 3          # verify_layout.py exit code: no usable extractor, not a verdict
 SOFFICE_TIMEOUT = 180
 
@@ -331,7 +332,7 @@ def build_cv(prof, spec, out_dir, folder, force=False, docx_only=False):
     out = os.path.join(out_dir, name + '.docx')
     guard_target(out, force)
     guard_target(out[:-5] + '.pdf', force)
-    max_pages = c.get('max_pages', 2)
+    max_pages = c.get('max_pages', prof['cv']['max_pages'])
     if docx_only:
         d, dropped = _apply_cv(prof, c, 0)
         d.save(out)
@@ -379,10 +380,10 @@ def build_letter(prof, spec, out_dir, folder, force=False, docx_only=False):
     _check_text(prof, *_strings(L), headline)
     if 'max_chars' in L and len(body) >= L['max_chars']:
         raise SystemExit(f"letter body is {len(body)} chars, limit is under {L['max_chars']} (max_chars)")
-    date = L.get('date') or datetime.date.today().strftime('%d %B %Y').lstrip('0')
+    date = L.get('date') or datetime.date.today().strftime(prof['cv']['date_format']).lstrip('0')
     d = docx.Document()
     s = d.sections[0]
-    s.page_width, s.page_height = Mm(210), Mm(297)
+    s.page_width, s.page_height = PAPER_MM[prof['cv']['paper']]
     for m in ('left_margin', 'right_margin', 'top_margin', 'bottom_margin'):
         setattr(s, m, Mm(19.05))
     st = d.styles['Normal']
@@ -395,10 +396,10 @@ def build_letter(prof, spec, out_dir, folder, force=False, docx_only=False):
     _run(_para(d, after=8), date, 11, MED)
     if L.get('re'):
         _run(_para(d, after=8), L['re'], 11, DARK, True)
-    _run(_para(d, after=8), L.get('salutation', 'Dear Hiring Team,'), 11, DARK)
+    _run(_para(d, after=8), L.get('salutation', prof['letter']['salutation']), 11, DARK)
     for t in L['paragraphs']:
         _run(_para(d, after=8), t, 11, DARK)
-    _run(_para(d), L.get('closing', 'Best regards,'), 11, DARK)
+    _run(_para(d), L.get('closing', prof['letter']['closing']), 11, DARK)
     _run(_para(d), prof['identity']['full_name'], 11, DARK, True)
     os.makedirs(out_dir, exist_ok=True)
     out = os.path.join(out_dir, _safe_name(L.get('file_name') or prof.output_stem(company_slug(folder), 'Cover-Letter')) + '.docx')
@@ -458,9 +459,9 @@ def verify(prof, kind, res, spec):
     if 'verify_pages' in sec:                       # explicit exact page count
         cmd += ['--pages', str(sec['verify_pages'])]
     elif kind == 'cv':                              # a CV may be shorter than its limit
-        cmd += ['--max-pages', str(sec.get('max_pages', 2))]
+        cmd += ['--max-pages', str(sec.get('max_pages', prof['cv']['max_pages']))]
     else:                                           # a letter is exactly one page
-        cmd += ['--pages', '1']
+        cmd += ['--pages', str(prof['letter']['max_pages'])]
     if kind == 'cv':
         cmd.append('--ascii-dates')
     for x in contains:

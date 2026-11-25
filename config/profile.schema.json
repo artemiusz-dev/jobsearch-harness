@@ -1140,7 +1140,7 @@
         },
         "stages": {
           "type": "array",
-          "description": "Date columns that mark pipeline stages, in order. The summary and calibration use them.",
+          "description": "Date columns that mark pipeline stages, in order. A date in a 'screen' column counts as a reply; in an 'interview' or 'final' column as an interview.",
           "items": {
             "type": "object",
             "required": [
@@ -1162,7 +1162,25 @@
                 ]
               }
             }
-          }
+          },
+          "default": [
+            {
+              "column": "Intro Call",
+              "role": "screen"
+            },
+            {
+              "column": "Assignment",
+              "role": "assignment"
+            },
+            {
+              "column": "Tech Interview",
+              "role": "interview"
+            },
+            {
+              "column": "Final Interview",
+              "role": "final"
+            }
+          ]
         },
         "default_new_status": {
           "type": "string",
@@ -1174,6 +1192,87 @@
           "const": true,
           "default": true,
           "description": "Backups are never overwritten or deleted (fixed rule, listed for visibility)."
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Column header for each logical field the scripts use. Rename a header here and every script follows. The salary column is tracker.salary_column.",
+          "properties": {
+            "number": {
+              "type": "string",
+              "minLength": 1,
+              "default": "#"
+            },
+            "company": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Company"
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Role"
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Source"
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Status"
+            },
+            "match": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Match %"
+            },
+            "applied": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Applied"
+            },
+            "outcome": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Offer / Rejected"
+            },
+            "next_action": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Next Action"
+            },
+            "folder": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Folder"
+            },
+            "updated": {
+              "type": "string",
+              "minLength": 1,
+              "default": "Updated"
+            }
+          }
+        },
+        "match_ratio": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1,
+          "default": 0.85,
+          "description": "Fuzzy company-name similarity at or above which two rows count as the same company."
+        },
+        "calibration_min_n": {
+          "type": "integer",
+          "minimum": 5,
+          "default": 30,
+          "description": "Applications per score band below which calibrate draws no conclusion."
+        },
+        "mature_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 14,
+          "description": "Applications newer than this are left out of calibration (a reply needs time)."
         }
       }
     },
@@ -1260,7 +1359,7 @@
             "dynamic team",
             "fast-paced environment",
             "i am eager to",
-            "actively exploring new opportunities"
+            "actively exploring"
           ]
         },
         "channel_banned_phrases": {
@@ -1271,7 +1370,19 @@
               "type": "string"
             }
           },
-          "description": "Extra banned phrases per channel (keys: dm, recruiter_reply, letter, form_answer). Added to banned_phrases."
+          "description": "Extra banned phrases per channel (keys: dm, recruiter_reply, letter, form_answer). Added to banned_phrases.",
+          "default": {
+            "dm": [
+              "happy to share my cv",
+              "would be glad to connect",
+              "which i appreciate",
+              "wanted to reach out directly",
+              "track record in large-scale architecture",
+              "i figure a direct message",
+              "i'm happy to hear the details first",
+              "worth discussing?"
+            ]
+          }
         },
         "limits": {
           "type": "object",

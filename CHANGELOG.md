@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 - 2026-11-25
+- Personal values are read from the profile instead of being written into scripts and skills:
+  - tracker scripts (`tracker_add`, `tracker_query`, `restyle_tracker`, `lib/calibration`) take column headers from `tracker.fields`, stage columns and their roles from `tracker.stages`, the new-row status from `tracker.default_new_status`, the follow-up marker from `followups.marker`, per-status windows from `followups.by_status`, and the fuzzy-match ratio and calibration sample size from `tracker.*`. A profile that renames every column, stage and status works end to end (`tests/test_rename_everything.py`).
+  - `check_dm.py` reads sentence cap, banned phrases (global plus the dm channel) and the em-dash rule from `style`; without a workspace it uses schema defaults, and an invalid profile is an error.
+  - `cvbuild.py` reads paper size, CV page limit, date format, salutation, closing and letter page count from `cv` and `letter`.
+- Skills no longer carry day counts, word limits, status names or phrase lists of their own: `followup-tracker`, `recruiter-responder`, `job-scanner`, `jd-analyzer`, `cover-letter-writer`, `cv-tailor`, `interview-prep`, `human-text` point to `$P.followups`, `$P.style.limits`, `$P.scoring.posting_health`, `$P.tracker.status_roles` and so on. The workspace `CLAUDE.md` and `humanize-rule.md` do the same; the banned list lives only in `style.banned_phrases`.
+- New behaviour: search tracks per board, named company lists, excluded industries, custom gates and modifiers in scanning and analysis; prior applications within `followups.history_window_days` shown in the scan notes, in `analysis.md` and before recruiter replies.
+- `recruiter-responder` no longer tells the user to say they are "actively exploring" (the phrase is banned everywhere).
+
 ## 0.6.0 - 2026-11-25
 - Profile schema extended so personal rules have one home: `targets.companies` (blacklist, whitelist, watch, never-contact), `targets.search_tracks`, `targets.excluded_industries`, `scoring.gates.custom`, `scoring.modifiers`, `scoring.posting_health`, `scoring.signal_stacks`, `compensation` (floors per type, compare-in, never-quote-net), `work_authorization` (target countries, permits, form wording), `followups` (per-status windows, marker, history window, draft-only), `tracker` (stages, default new status, closed and in-progress roles), `style` (banned phrases, per-channel extras, length limits, tone, languages), `cv`, `letter`, `referral`, `security`, `privacy`.
 - `Profile` helpers: `banned_phrases(channel)`, `limit()`, `followup_days(status)`, `followup_marker()`, `default_new_status`, `stage_columns`, `status_role()`.

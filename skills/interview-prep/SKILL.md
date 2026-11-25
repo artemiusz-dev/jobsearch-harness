@@ -138,7 +138,7 @@ For each mapped story, a 2-3 sentence "elevator version" for when there is no ti
 ## Post-Completion Workflow
 
 1. Save the package to `<company-folder>/interview-prep.md`.
-2. If the tracker status is still APPLIED or SCREENING, suggest INTERVIEW once an interview is confirmed (back up first, per the immutability rule).
+2. If the tracker status is still in `$P.tracker.status_roles.open_for_followup` or the screening status, suggest the interview status (`status_roles.interview`) once an interview is confirmed (back up first, per the immutability rule).
 3. Change the tracker only with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/tracker_add.py --workspace . add|update ...` (backup, status and date validation, duplicate check and restyle in one step; exit code 2 means ask the user); never edit the xlsx directly.
 
 ## Important Principles

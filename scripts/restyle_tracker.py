@@ -34,12 +34,10 @@ from openpyxl.utils import get_column_letter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jobprofile import ProfileError, add_workspace_arg, load_profile  # noqa: E402
 
-REQUIRED_COLUMNS = ["#", "Status", "Updated"]      # what sorting and renumbering need; other columns are optional
-BASE_WIDTHS = {
-    "#": 4, "Company": 24, "Role": 36, "Source": 22, "Status": 14, "Match %": 10,
-    "Applied": 12, "Intro Call": 12, "Assignment": 12, "Tech Interview": 14, "Final Interview": 14,
-    "Offer / Rejected": 16, "Next Action": 44, "Folder": 28, "Updated": 12,
-}
+REQUIRED_FIELDS = ["number", "status", "updated"]      # what sorting and renumbering need; other columns are optional
+FIELD_WIDTHS = {"number": 4, "company": 24, "role": 36, "source": 22, "status": 14, "match": 10, "applied": 12,
+                "outcome": 16, "next_action": 44, "folder": 28, "updated": 12}
+STAGE_WIDTH = 13
 
 
 def thin_border():
@@ -78,7 +76,8 @@ def main():
     order = [s["name"] for s in statuses]
     styles = {s["name"]: {"bg": hex6(s.get("color"), "#FFFFFF"), "text": hex6(s.get("text_color"), "#1A1A1A")} for s in statuses}
     dimmed = {s["name"] for s in statuses if s.get("dimmed")}
-    widths = dict(BASE_WIDTHS)
+    widths = {prof.col(f): w for f, w in FIELD_WIDTHS.items()}
+    widths.update({c: STAGE_WIDTH for c in prof.stage_columns})
     widths[prof.salary_column] = 34
 
     if not os.path.exists(tracker):
@@ -91,7 +90,7 @@ def main():
         sys.exit(1)
     ws = wb[sheet]
     headers = [cell.value for cell in ws[1]]
-    missing = [c for c in REQUIRED_COLUMNS if c not in headers]
+    missing = [prof.col(f) for f in REQUIRED_FIELDS if prof.col(f) not in headers]
     if missing:
         print(f"ERROR: tracker is missing required column(s) {missing}; scripts depend on them "
               f"(see docs/tracker-schema.md). Nothing was changed.", file=sys.stderr)
@@ -110,7 +109,7 @@ def main():
     def col(name):
         return headers.index(name) + 1  # 1-based
 
-    num_col, status_col, updated_col = col("#"), col("Status"), col("Updated")
+    num_col, status_col, updated_col = col(prof.col("number")), col(prof.col("status")), col(prof.col("updated"))
     width = len(headers)
 
     def status_rank(v):
@@ -154,7 +153,7 @@ def main():
 
     body_default = Font(name="Calibri", size=9, color="1A1A1A")
     body_dimmed = Font(name="Calibri", size=9, color="AAAAAA")
-    wrap_col = headers.index("Next Action") + 1 if "Next Action" in headers else -1
+    wrap_col = headers.index(prof.col("next_action")) + 1 if prof.col("next_action") in headers else -1
 
     for row_idx in range(2, len(data_rows) + 2):
         status_val = str(ws.cell(row=row_idx, column=status_col).value or "").strip()
