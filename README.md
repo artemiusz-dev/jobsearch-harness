@@ -96,3 +96,7 @@ The scanner never calls a named board. Each `boards` entry in your profile names
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Licensed MIT; third-party attributions in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+## Where personal rules live
+
+Everything personal (targets, salary, locations, scoring, follow-up cadence, tracker names, writing limits, banned phrases) is in `profile.yaml` and validated by `config/profile.schema.json`; skills and scripts only read it, and tests fail if a default or a number is copied elsewhere. [docs/parity.md](docs/parity.md) lists where each kind of rule lives. Coming from a standalone setup: [docs/migration.md](docs/migration.md).

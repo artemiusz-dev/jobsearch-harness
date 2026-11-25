@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0 - 2026-11-25
+- First stable release: personal rules have a single source (`profile.yaml` plus workspace docs), scripts and skills hold none, and drift tests guard it.
+- README points to `docs/parity.md` and `docs/migration.md`.
+
 ## 0.9.0 - 2026-11-25
 - Parity verified against a real standalone setup (read-only, old project hashed before and after): `tracker_query quiet` returns the same 91 candidates as the old script; `match` returns the same rows for the checked companies except where the old character-ratio matcher produced false positives (whole-word matching is stricter by design); a real application spec builds with the same file names, page counts and letter text, and CV text differing only in trailing whitespace.
 - `docs/migration.md`: how to move from a standalone setup to the plugin without touching it.
