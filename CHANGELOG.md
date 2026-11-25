@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 - 2026-11-25
+- Parity verified against a real standalone setup (read-only, old project hashed before and after): `tracker_query quiet` returns the same 91 candidates as the old script; `match` returns the same rows for the checked companies except where the old character-ratio matcher produced false positives (whole-word matching is stricter by design); a real application spec builds with the same file names, page counts and letter text, and CV text differing only in trailing whitespace.
+- `docs/migration.md`: how to move from a standalone setup to the plugin without touching it.
+- `docs/parity.md` statuses reflect what is enforced.
+
 ## 0.8.0 - 2026-11-25
 - Drift protection (`tests/test_drift.py`): the example profile and `init_workspace.py` must equal the schema defaults; the scoring rubric and tracker-schema docs must quote the schema defaults (weights, thresholds, technical floor, statuses, column order); the banned phrase list and ATS domains must not be copied into scripts or the workspace `CLAUDE.md`; every `$P.<field>` reference in skills and templates must exist in the schema.
 - Skill lint: no status names or numeric limits (days, words, characters) inside skills (generic writing and review skills are listed exceptions); frontmatter `name` matches the directory.
