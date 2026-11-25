@@ -89,6 +89,11 @@
         "backup_dir": {
           "type": "string",
           "default": "_backup"
+        },
+        "company_research_dir": {
+          "type": "string",
+          "default": "company_research",
+          "description": "Cache of company research (one JSON per company)."
         }
       }
     },
@@ -123,6 +128,20 @@
           "type": "string",
           "default": "{first}-{last}-{company_slug}-{kind}",
           "description": "File name stem for generated files. Placeholders: first, last, company_slug, kind (CV or Cover-Letter). '-{kind}' is appended if the pattern lacks it, so a CV and a letter never collide."
+        },
+        "contact_email_guard": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Addresses or domains that must never appear in a CV, letter or message (for example an account address used only for this tool)."
+        },
+        "confidential_employers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Employers or clients that may not be named in outbound text; use a generic description instead."
         }
       }
     },
@@ -185,6 +204,13 @@
               "items": {
                 "type": "string"
               }
+            },
+            "known_gaps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Technologies you lack; the analyser treats a hard requirement for one as a gap, never a match."
             }
           }
         },
@@ -206,6 +232,97 @@
             "type": "string"
           },
           "description": "e.g. consulting, staffing agency"
+        },
+        "companies": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Named companies. Matched fuzzily by tracker_query match and by the job scanner.",
+          "properties": {
+            "blacklist": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Never apply, never score above Weak."
+            },
+            "whitelist": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Always surface, even when the score is borderline."
+            },
+            "watch": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Alert when these post a matching role."
+            },
+            "never_contact": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Do not message anyone at these companies."
+            }
+          }
+        },
+        "excluded_industries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Industries that fail or flag a posting (for example gambling, defence)."
+        },
+        "search_tracks": {
+          "type": "array",
+          "description": "Parallel searches with their own tag (for example frontend and a full-stack wave). The scanner runs each track on every board.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9_-]+$"
+              },
+              "label": {
+                "type": "string"
+              },
+              "tag": {
+                "type": "string",
+                "description": "Short marker added to scan rows, for example [FS]."
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "stacks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "countries": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Country codes to search for this track; overrides board regions."
+              }
+            }
+          }
         }
       }
     },
@@ -308,6 +425,39 @@
           "minimum": 0,
           "maximum": 100,
           "default": 50
+        },
+        "floors_by_type": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "description": "Optional floor per employment type (gross), overriding floor_gross for that type."
+        },
+        "net_methods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names of net-calculation methods to compute for a range (for example eor, jdg_ryczalt, uop). The result with the highest net is shown as primary."
+        },
+        "compare_in": {
+          "enum": [
+            "net",
+            "gross"
+          ],
+          "default": "net",
+          "description": "Compare offers to the floor in net or gross terms."
+        },
+        "never_quote_net": {
+          "type": "boolean",
+          "default": false,
+          "description": "Never state a net figure to a recruiter or employer."
+        },
+        "ask_answer_policy": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "How to fill numeric salary fields on forms (for example: use the ask, never the floor)."
         }
       }
     },
@@ -383,6 +533,50 @@
             "security clearance"
           ],
           "description": "Posting wording that fails the eligibility gate."
+        },
+        "target_countries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Countries you want roles in; onsite or hybrid elsewhere fails the location gate."
+        },
+        "permits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "country",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "country": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "valid_until": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 300
+              }
+            }
+          },
+          "description": "Residence or work permits you hold. Used for eligibility lines and form answers."
+        },
+        "form_answer": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Exact wording for work-authorization questions on application forms."
+        },
+        "answer_only_asked_country": {
+          "type": "boolean",
+          "default": true,
+          "description": "Answer for the country the form asks about; flag other countries to the user instead of answering."
         }
       }
     },
@@ -503,6 +697,47 @@
             "language": {
               "type": "boolean",
               "default": true
+            },
+            "custom": {
+              "type": "array",
+              "description": "Your own gates. A match in the posting applies the action.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "match",
+                  "action"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "match": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Phrases that trigger the gate (case-insensitive)."
+                  },
+                  "action": {
+                    "enum": [
+                      "fail",
+                      "flag",
+                      "cap"
+                    ]
+                  },
+                  "cap_at": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                }
+              }
             }
           }
         },
@@ -512,6 +747,128 @@
             "type": "string"
           },
           "description": "JD topics that historically caused rejections; if present, subtract 5-10 from Technical."
+        },
+        "modifiers": {
+          "type": "array",
+          "description": "Score adjustments applied to one rubric dimension when a phrase appears in the posting.",
+          "items": {
+            "type": "object",
+            "required": [
+              "when",
+              "dimension",
+              "delta"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "when": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "dimension": {
+                "enum": [
+                  "technical",
+                  "experience",
+                  "culture",
+                  "career",
+                  "compensation"
+                ]
+              },
+              "delta": {
+                "type": "integer",
+                "minimum": -50,
+                "maximum": 50
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "depth_risk_penalty": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 5
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 10
+            }
+          },
+          "description": "Points subtracted from Technical when a depth-risk topic is stressed."
+        },
+        "posting_health": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Liveness and quality checks on a posting.",
+          "properties": {
+            "fresh_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 7
+            },
+            "stale_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 30
+            },
+            "ghost_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 60
+            },
+            "applicants_flag": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 100
+            },
+            "expiry_flag_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 7
+            },
+            "layoff_lookback_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 90
+            },
+            "recruiter_inactive_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 30
+            }
+          }
+        },
+        "signal_stacks": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Skill signals the analyser matches against the posting.",
+          "properties": {
+            "strong": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "partial": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "gap": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
@@ -547,6 +904,29 @@
             "type": "integer",
             "minimum": 1,
             "default": 50
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Board-specific keywords added to the track keywords."
+          },
+          "filters": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Board-specific filters passed to the adapter (seniority, remote, salary)."
+          },
+          "max_age_days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Search track ids this board runs; empty = all."
           }
         }
       }
@@ -579,6 +959,45 @@
         "referral_first": {
           "type": "boolean",
           "default": true
+        },
+        "by_status": {
+          "type": "object",
+          "description": "Per-status windows (days quiet before a first / second follow-up). Keys are status names.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "first_after_days": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "second_after_days": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "marker": {
+          "type": "string",
+          "default": "followed up {date}",
+          "description": "Text written to Next Action when a follow-up is logged; {date} is YYYY-MM-DD. Used to count follow-ups."
+        },
+        "history_window_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 60,
+          "description": "Show applications to the same company within this many days (informational, never an auto-skip)."
+        },
+        "draft_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skills draft follow-ups; they never send."
+        },
+        "never_auto_skip_history": {
+          "type": "boolean",
+          "default": true,
+          "description": "A past SKIP, REJECTED or WITHDRAWN row never auto-skips a new role."
         }
       }
     },
@@ -648,6 +1067,28 @@
               "default": [
                 "OFFER"
               ]
+            },
+            "closed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "SKIP",
+                "REJECTED",
+                "WITHDRAWN"
+              ]
+            },
+            "in_progress": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "ANALYZING",
+                "APPLYING",
+                "REFERRAL"
+              ]
             }
           }
         },
@@ -696,6 +1137,43 @@
               }
             }
           }
+        },
+        "stages": {
+          "type": "array",
+          "description": "Date columns that mark pipeline stages, in order. The summary and calibration use them.",
+          "items": {
+            "type": "object",
+            "required": [
+              "column"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "column": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "applied",
+                  "screen",
+                  "assignment",
+                  "interview",
+                  "final",
+                  "outcome"
+                ]
+              }
+            }
+          }
+        },
+        "default_new_status": {
+          "type": "string",
+          "default": "To Apply",
+          "description": "Status given to a new row."
+        },
+        "backup_never_overwrite": {
+          "type": "boolean",
+          "const": true,
+          "default": true,
+          "description": "Backups are never overwritten or deleted (fixed rule, listed for visibility)."
         }
       }
     },
@@ -755,6 +1233,192 @@
           "type": "string",
           "maxLength": 80,
           "description": "Optional. Text the assistant starts every chat reply with (for example a first name and a comma). Chat replies only; never put it in a CV, letter or outbound message."
+        },
+        "banned_phrases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Single list of phrases that must not appear in any outbound text (letters, form answers, replies, DMs). Case-insensitive substring match. Your list replaces this default.",
+          "default": [
+            "passionate about",
+            "i have a passion for",
+            "excited to",
+            "thrilled to",
+            "leverage",
+            "synergy",
+            "synergize",
+            "utilize",
+            "results-driven",
+            "team player",
+            "detail-oriented",
+            "go-getter",
+            "great fit",
+            "proven track record",
+            "look forward to the opportunity",
+            "cutting-edge",
+            "dynamic team",
+            "fast-paced environment",
+            "i am eager to",
+            "actively exploring new opportunities"
+          ]
+        },
+        "channel_banned_phrases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Extra banned phrases per channel (keys: dm, recruiter_reply, letter, form_answer). Added to banned_phrases."
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Length limits for generated text.",
+          "properties": {
+            "dm_sentences": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 3
+            },
+            "letter_words": {
+              "type": "integer",
+              "minimum": 50,
+              "default": 400
+            },
+            "letter_short_chars": {
+              "type": "integer",
+              "minimum": 100,
+              "default": 1000
+            },
+            "letter_paragraphs": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 4
+            },
+            "letter_short_paragraphs": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 2
+            },
+            "followup_words": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "default": [
+                60,
+                120
+              ],
+              "description": "Min and max words in a follow-up message."
+            },
+            "reply_words_interested": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "default": [
+                60,
+                150
+              ],
+              "description": "Min and max words when replying to a recruiter you are interested in."
+            },
+            "reply_words_info": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "default": [
+                60,
+                120
+              ],
+              "description": "Min and max words when asking for details or declining."
+            },
+            "form_intro_words": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "default": [
+                100,
+                200
+              ],
+              "description": "Self-introduction on an application form."
+            },
+            "form_project_words": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "default": [
+                100,
+                150
+              ],
+              "description": "Project entry on an application form."
+            }
+          }
+        },
+        "tone_default": {
+          "type": "string",
+          "default": "balanced",
+          "description": "Default letter tone."
+        },
+        "tone_options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tones offered when asking.",
+          "default": [
+            "direct",
+            "balanced",
+            "narrative"
+          ]
+        },
+        "languages": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cv": {
+              "type": "string",
+              "default": "English"
+            },
+            "letter": {
+              "type": "string",
+              "default": "English"
+            },
+            "replies": {
+              "type": "string",
+              "description": "Language of replies; empty = mirror the recruiter."
+            }
+          }
+        },
+        "address_reader_directly": {
+          "type": "boolean",
+          "default": true,
+          "description": "Write letters to the reader (you/your) instead of the company in the third person."
+        },
+        "send_window": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Best days and times to send outreach, as free text."
         }
       }
     },
@@ -790,6 +1454,141 @@
           },
           "maxItems": 20,
           "description": "Other standing facts or rules (country limits, role priorities, hard no's)."
+        },
+        "side_hustle_policy": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "What to say (or not say) about other work when a recruiter offers part-time or contract roles."
+        }
+      }
+    },
+    "cv": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "paper": {
+          "enum": [
+            "A4",
+            "Letter"
+          ],
+          "default": "A4"
+        },
+        "max_pages": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "default": 2
+        },
+        "date_format": {
+          "type": "string",
+          "default": "%d %B %Y",
+          "description": "strftime pattern for dates in letters and CVs."
+        },
+        "frozen_facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Facts that must never change when tailoring (employers, titles, dates, numbers)."
+        },
+        "research_cache_ttl_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30
+        }
+      }
+    },
+    "letter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "salutation": {
+          "type": "string",
+          "default": "Dear Hiring Team,"
+        },
+        "closing": {
+          "type": "string",
+          "default": "Best regards,"
+        },
+        "max_pages": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2,
+          "default": 1
+        },
+        "only_on_request": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write a cover letter only when the user asks; never offer one."
+        }
+      }
+    },
+    "referral": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "type": "string",
+          "maxLength": 600,
+          "description": "Warm-path procedure in your words."
+        },
+        "contacts_file": {
+          "type": "string",
+          "description": "Workspace-relative file with your contacts or followers."
+        },
+        "max_wait_days": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Days to wait for a referral before a cold application; 0 = never delay."
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trusted_ats_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Apex domains of applicant-tracking systems you accept apply links to. A look-alike host fails closed.",
+          "default": [
+            "greenhouse.io",
+            "lever.co",
+            "myworkdayjobs.com",
+            "ashbyhq.com",
+            "smartrecruiters.com",
+            "workable.com",
+            "teamtailor.com",
+            "bamboohr.com"
+          ]
+        },
+        "treat_postings_as_untrusted": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "never_mention": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Topics that must not appear in outbound text."
+        },
+        "public_safe_tag": {
+          "type": "string",
+          "default": "[PUBLIC-SAFE]"
+        },
+        "internal_only_tag": {
+          "type": "string",
+          "default": "[INTERNAL-ONLY]"
         }
       }
     }

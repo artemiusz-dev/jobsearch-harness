@@ -132,6 +132,14 @@ def validate(data: dict) -> list[str]:
         if unsafe(v):
             errs.append(f"tracker/archives: must be workspace-relative, no '..' (got {v!r})")
     errs += _status_role_errors(data.get("tracker", {}))
+    errs += _tracker_ref_errors(data.get("tracker", {}), data.get("followups", {}))
+    lim = data.get("scoring", {}).get("depth_risk_penalty", {})
+    if lim.get("min") is not None and lim.get("max") is not None and lim["min"] > lim["max"]:
+        errs.append("scoring/depth_risk_penalty: min must not exceed max")
+    for key in ("contacts_file",):
+        v = data.get("referral", {}).get(key)
+        if v and unsafe(v):
+            errs.append(f"referral/{key}: must be workspace-relative, no '..' (got {v!r})")
     errs += _pattern_errors("identity/output_name_pattern", data.get("identity", {}).get("output_name_pattern"), OUTPUT_FIELDS)
     errs += _pattern_errors("paths/output_dir_pattern", data.get("paths", {}).get("output_dir_pattern"), DIR_FIELDS)
     return errs
@@ -158,6 +166,27 @@ def _status_role_errors(tracker: dict) -> list[str]:
         missing = sorted(n for n in wanted if n not in names)
         if missing:
             errs.append(f"tracker/status_roles/{role}: status(es) {missing} are not in tracker.statuses{hint}")
+    return errs
+
+
+def _tracker_ref_errors(tracker: dict, followups: dict) -> list[str]:
+    """default_new_status, follow-up per-status keys and stage columns must refer to names that exist."""
+    errs = []
+    statuses = tracker.get("statuses")
+    names = {s.get("name") for s in statuses if isinstance(s, dict)} if statuses else {s["name"] for s in DEFAULT_STATUSES}
+    new = tracker.get("default_new_status")
+    if new and new not in names:
+        errs.append(f"tracker/default_new_status: {new!r} is not in tracker.statuses")
+    for k in (followups.get("by_status") or {}):
+        if k not in names:
+            errs.append(f"followups/by_status: {k!r} is not in tracker.statuses")
+    cols = tracker.get("columns")
+    if cols:
+        for st in tracker.get("stages") or []:
+            if st["column"] not in cols:
+                errs.append(f"tracker/stages: column {st['column']!r} is not in tracker.columns")
+    if "{date}" not in (followups.get("marker") or "{date}"):
+        errs.append("followups/marker: must contain {date}")
     return errs
 
 
@@ -212,6 +241,47 @@ class Profile:
     @property
     def statuses(self) -> list[dict]:
         return self.data["tracker"].get("statuses") or DEFAULT_STATUSES
+
+    @property
+    def default_new_status(self) -> str:
+        return self.data["tracker"].get("default_new_status") or "To Apply"
+
+    @property
+    def stage_columns(self) -> list[str]:
+        """Date columns that mark pipeline stages (profile tracker.stages, else the four default stage columns)."""
+        st = self.data["tracker"].get("stages")
+        return [s["column"] for s in st] if st else ["Intro Call", "Assignment", "Tech Interview", "Final Interview"]
+
+    def status_role(self, role: str) -> list[str]:
+        roles = self.data["tracker"].get("status_roles") or {}
+        return list(roles.get(role) or DEFAULT_STATUS_ROLES.get(role, []))
+
+    # ---- style -------------------------------------------------------------
+    def banned_phrases(self, channel: str | None = None) -> list[str]:
+        """Global banned list plus the channel extras (dm, recruiter_reply, letter, form_answer), lowercased, de-duplicated."""
+        st = self.data.get("style", {})
+        out = list(st.get("banned_phrases", []))
+        if channel:
+            out += (st.get("channel_banned_phrases") or {}).get(channel, [])
+        seen, res = set(), []
+        for ph in out:
+            k = ph.strip().lower()
+            if k and k not in seen:
+                seen.add(k)
+                res.append(k)
+        return res
+
+    def limit(self, key: str):
+        return self.data.get("style", {}).get("limits", {})[key]
+
+    def followup_marker(self, date: str) -> str:
+        return self.data["followups"]["marker"].replace("{date}", date)
+
+    def followup_days(self, status: str | None = None) -> tuple[int, int]:
+        """(first, second) quiet days, per-status override first, else the global followups values."""
+        f = self.data["followups"]
+        o = (f.get("by_status") or {}).get(status or "", {})
+        return o.get("first_after_days", f["first_after_days"]), o.get("second_after_days", f["second_after_days"])
 
     # ---- scoring bands -----------------------------------------------------
     @property

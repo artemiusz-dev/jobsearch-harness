@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-11-25
+- Profile schema extended so personal rules have one home: `targets.companies` (blacklist, whitelist, watch, never-contact), `targets.search_tracks`, `targets.excluded_industries`, `scoring.gates.custom`, `scoring.modifiers`, `scoring.posting_health`, `scoring.signal_stacks`, `compensation` (floors per type, compare-in, never-quote-net), `work_authorization` (target countries, permits, form wording), `followups` (per-status windows, marker, history window, draft-only), `tracker` (stages, default new status, closed and in-progress roles), `style` (banned phrases, per-channel extras, length limits, tone, languages), `cv`, `letter`, `referral`, `security`, `privacy`.
+- `Profile` helpers: `banned_phrases(channel)`, `limit()`, `followup_days(status)`, `followup_marker()`, `default_new_status`, `stage_columns`, `status_role()`.
+- Cross-field validation: default status, per-status follow-up keys, stage columns, marker placeholder, depth-risk range, referral path.
+- `init_workspace.py` takes scoring defaults from the schema instead of its own copy.
+- `docs/parity.md`: where every kind of personal rule lives. Scripts and skills start reading the new fields in 0.7.0.
+
 ## 0.5.1 - 2026-11-25
 - `tracker_query.py summary`: rows per status, stage-column counts and the age of open applications in one call. `followup-tracker` uses it (and `quiet`) instead of reading the xlsx with its own `openpyxl` snippet, which failed on machines without the package.
 - `job-scanner`: a board that returns zero results is retried once with a looser query before it is reported as "no data" (a stacked filter on justjoinit matched nothing).

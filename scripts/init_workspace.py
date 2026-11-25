@@ -46,8 +46,17 @@ import jobprofile as jp  # noqa: E402
 PLUGIN = jp.PLUGIN_ROOT.resolve()
 TEMPLATE = PLUGIN / "template"
 
-DEFAULT_WEIGHTS = {"technical": 0.30, "experience": 0.20, "culture": 0.10, "career": 0.25, "compensation": 0.15}
-DEFAULT_THRESHOLDS = {"strong": 75, "good": 60, "moderate": 45, "weak": 30, "apply_this_week_from": 68}
+
+
+def _schema_defaults(section: str, key: str) -> dict:
+    """Defaults live in config/profile.schema.json only; init copies them so a new profile states them explicitly."""
+    schema = json.loads(jp.SCHEMA_PATH.read_text(encoding="utf-8"))
+    props = schema["properties"][section]["properties"][key]["properties"]
+    return {k: v["default"] for k, v in props.items() if "default" in v}
+
+
+DEFAULT_WEIGHTS = _schema_defaults("scoring", "weights")
+DEFAULT_THRESHOLDS = _schema_defaults("scoring", "thresholds")
 
 
 class InitError(Exception):
@@ -84,7 +93,7 @@ def build_profile(a: dict, role: str, market: str) -> dict:
         "locations": {"accepted": a["locations"]},
         "compensation": comp,
         "languages": {"spoken": a["languages"]},
-        "scoring": {"rubric_version": "v2", "weights": DEFAULT_WEIGHTS, "thresholds": DEFAULT_THRESHOLDS},
+        "scoring": {"rubric_version": "v2", "weights": dict(DEFAULT_WEIGHTS), "thresholds": dict(DEFAULT_THRESHOLDS)},
         "tracker": {"sheet": "Pipeline"},
     }
     if a.get("phone"):

@@ -32,6 +32,15 @@ targets:
   search_keywords: [backend, golang, distributed systems]
   exclude_keywords: [intern, junior]
   avoid_company_types: [staffing agency]
+  excluded_industries: [gambling]
+  companies:
+    blacklist: []        # never apply
+    whitelist: []        # always surface
+    watch: []            # alert on matching roles
+    never_contact: []
+  search_tracks:
+    - { id: backend, label: Backend, tag: "", roles: [Senior Backend Engineer], keywords: [golang, backend] }
+    - { id: platform, label: Platform wave, tag: "[PL]", roles: [Senior Platform Engineer], keywords: [kubernetes, platform] }
 
 locations:
   accepted:
@@ -48,6 +57,8 @@ compensation:
   net_rule: generic_flat
   employment_types: []
   unlisted_salary_score: 50
+  compare_in: net
+  never_quote_net: true
 
 languages:
   spoken:
@@ -59,6 +70,8 @@ languages:
 work_authorization:
   authorized_in: [EU]
   needs_sponsorship_elsewhere: true
+  target_countries: [DE]
+  answer_only_asked_country: true
 
 scoring:
   rubric_version: v2
@@ -75,6 +88,10 @@ followups:
   second_after_days: 14
   max_followups: 2
   referral_first: true
+  history_window_days: 60
+  by_status: {}           # e.g. { SCREENING: { first_after_days: 4 } }
+  marker: "followed up {date}"
+  draft_only: true
 
 tracker:
   sheet: Pipeline
@@ -89,9 +106,28 @@ situation:
 
 style:
   forbid_em_dash: true
+  # banned_phrases: [...]     # replaces the built-in list; channel_banned_phrases: { dm: [...] } extends it
+  limits: { dm_sentences: 3, letter_words: 400, followup_words: [60, 120] }
+  tone_default: balanced
   reply_greeting: "Alex,"   # optional: every chat reply starts with this (chat only, never in documents)
 
 cv_map:
   summary_heading: PROFESSIONAL SUMMARY
   skills_heading: SKILLS
   experience_heading: PROFESSIONAL EXPERIENCE
+
+cv:
+  paper: A4
+  max_pages: 2
+  frozen_facts: ["employer names, titles and dates", "every number must trace to the knowledge base"]
+
+letter:
+  salutation: "Dear Hiring Team,"
+  closing: "Best regards,"
+  only_on_request: false
+
+security:
+  trusted_ats_domains: [greenhouse.io, lever.co]     # replaces the built-in list
+
+referral:
+  max_wait_days: 0
